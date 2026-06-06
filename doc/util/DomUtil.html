@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/!overview.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../util/GeneralUtil.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="domutil">DomUtil</h1><p>Very simple wrappers around HTML5 DOM methods to streamline their use.</p><p>This module is <strong>not</strong> intended to grow to be a replacement of things like jQuery. Rather it is intended to make searching and locating things in the DOM trivially easy. This is primarily a complimentary technology to a vDOM library, which innate minimizes the interactions with the DOM by its nature.</p><p><span class="status-stable">Module Status: </span></p><h6 id="dependencies">Dependencies:</h6>
+<pre><code>None
+</code></pre><h6 id="throws">Throws:</h6>
+<pre><code>None
+</code></pre><h6 id="construction">Construction</h6>
+<pre><code>new DomUtil()
+</code></pre>
+<h3 id="function-find-sel-nod">find(sel,nod)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Find a DOM element matching a selector. If the result of the query is an array, the first element is returned.</p><p>Arguments &amp; Return:</p>
+<pre><code>sel             Selector string.
+nod             Node. Optional; defaults to `document`.
+=&gt;              An `Element` or null if no element was found.
+</code></pre><p>This maps the selector to the matching native function:</p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td><code>#id</code> </td>
+      <td>Find element using <code>getElementById</code>.</td>
+    </tr>
+    <tr>
+      <td><code>.class-list</code> </td>
+      <td>Find element using <code>getElementsByClassName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>=tag-name</code> </td>
+      <td>Find element using <code>getElementsByTagName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>?selector</code> </td>
+      <td>Find element using <code>querySelector</code>.</td>
+    </tr>
+    <tr>
+      <td><code>*selector</code> </td>
+      <td>Find element using <code>querySelectorAll</code>.</td>
+    </tr>
+  </tbody>
+</table></div>
+<h3 id="function-findall-sel-nod">findAll(sel,nod)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Find all DOM elements matching a selector.</p><p>Arguments &amp; Return:</p>
+<pre><code>sel             Selector string.
+nod             Node. Optional; defaults to `document`.
+=&gt;              An `Element[]`.
+</code></pre><p>This maps the selector to the matching native function:</p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td><code>#id</code> </td>
+      <td>Find elements using <code>getElementById</code>. Always returns a single element in an array.</td>
+    </tr>
+    <tr>
+      <td><code>.class-list</code> </td>
+      <td>Find elements using <code>getElementsByClassName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>=tag-name</code> </td>
+      <td>Find elements using <code>getElementsByTagName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>?selector</code> </td>
+      <td>Find elements using <code>querySelector</code>.</td>
+    </tr>
+    <tr>
+      <td><code>*selector</code> </td>
+      <td>Find elements using <code>querySelectorAll</code>.</td>
+    </tr>
+  </tbody>
+</table></div>
+<h3 id="function-findparent-sel-nod">findParent(sel,nod)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Find nearest parent matching a search term.</p><p>Arguments &amp; Return:</p>
+<pre><code>sel             Selector string.
+nod             Node. Optional; defaults to `document`.
+=&gt;              An Element or null.
+</code></pre><p>This maps the selector to the matching native function:</p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td><code>#id</code> </td>
+      <td>Find elements using <code>getElementById</code>. Always returns a single element in an array.</td>
+    </tr>
+    <tr>
+      <td><code>.class-list</code> </td>
+      <td>Find elements using <code>getElementsByClassName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>=tag-name</code> </td>
+      <td>Find elements using <code>getElementsByTagName</code>.</td>
+    </tr>
+  </tbody>
+</table></div>
+<h3 id="function-mpfind">mpFind()<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Monkey patch <code>Element</code> and <code>Document</code> with <code>find</code>, <code>findAll</code>, and <code>findParent</code> functions from this module. Returns this module to allow chaining. For example: <code>domU=new DomUtil().mpFind();</code>. The resulting function searches with the second argument (<code>nod</code>) set to the node on which it&rsquo;s invoked.</p><p>Use the monkey patched functions like so:</p>
+<pre><code>document.find(&quot;#id&quot;).findAll(&quot;.inside&quot;);        // searches `document`
+element.find(&quot;#id&quot;).findAll(&quot;.inside&quot;);         // searches `element`
+</code></pre>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/!overview.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../util/GeneralUtil.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

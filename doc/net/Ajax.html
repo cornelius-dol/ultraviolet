@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../net/!overview.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../net/DataLink.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="ajax">Ajax</h1><p>Promise based Asynchoronous Javascript and X. Defaults to JSON input output.</p><p><p><span class="status-stable">Module Status: </span> <p><span class="since">1.00</span></p><h6 id="construction">Construction</h6>
+<pre><code>new Ajax(config)
+</code></pre><h6 id="dependencies">Dependencies:</h6>
+<ul>
+  <li><a href="GeneralUtil.html">util/GeneralUtil</a></li>
+</ul><h6 id="arguments">Arguments:</h6>
+<pre><code>config          Module configuration.
+</code></pre><h6 id="config">Config:</h6>
+<pre><code>baseUrl         A URL or string which prefixes all requests made.
+baseQuery       An object, array or string which prefixes query data for all requests made.
+processing      A function which will be called with a `true` argument when a request begins, and `false` when
+                it completes (`Promise.finally`).
+throwIf         A list of keys, in order of precedence, which will cause the response to be thrown as an
+                exception if any are loosely true in the top level of response. This allows 2xx error responses
+                to be automatically converted to exceptions which can be processed with a promise catch handler.
+</code></pre>
+<h3 id="function-send-mth-url-qry-bdy-opt">send(mth, url, qry, bdy, opt)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>General purpose function to send an AJAX request.</p><p>If the config specifies a <code>baseUrl</code> it is prepended verbatim to the supplied URL.</p><p>If the config specifies a <code>baseQuery</code> it is prepended verbatim to the supplied query data after it is encoded as query data. The query data should not have a leading <code>?</code>. The end result (allowing for blank/null query data) is:</p>
+<pre><code>{base-url}url?{baseQuery}&amp;qry
+</code></pre><p>If an object is given for query data, it is encoded as a URI string. If an array is given it is simply joined with an <code>&amp;</code> separator. A simple value is coerced to a string and passed verbatim.</p><p>If an object or array is given for body data, it is encoded as JSON. Other encodings must be passed as string values and the content type and encoding specified with options. A simple value is coerced to a string and passed verbatim.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>mth         HTTP method for request.
+url         URL to fetch.
+qry         Optional query object or value.
+bdy         Optional body object, array or value.
+opt         Optional `fetch` options passed to HTML API.
+=&gt;          The `obj` supplied (allowing inline assignment by the caller).
+</code></pre><h6 id="aliases">Aliases:</h6>
+<pre><code>connect (url, qry, bdy, opt)  =&gt;  send(&quot;CONNECT&quot;, url, qry, bdy, opt);
+head    (url, qry, bdy, opt)  =&gt;  send(&quot;HEAD&quot;   , url, qry, bdy, opt);
+options (url, qry, bdy, opt)  =&gt;  send(&quot;OPTIONS&quot;, url, qry, bdy, opt);
+trace   (url, qry, bdy, opt)  =&gt;  send(&quot;TRACE&quot;  , url, qry, bdy, opt);
+
+delete  (url, qry, bdy, opt)  =&gt;  send(&quot;DELETE&quot; , url, qry, bdy, opt);
+get     (url, qry, bdy, opt)  =&gt;  send(&quot;GET&quot;    , url, qry, bdy, opt);
+set     (url, qry, bdy, opt)  =&gt;  send(&quot;POST&quot;   , url, qry, bdy, opt);
+link    (url, qry, bdy, opt)  =&gt;  send(&quot;LINK&quot;   , url, qry, bdy, opt);
+post    (url, qry, bdy, opt)  =&gt;  send(&quot;POST&quot;   , url, qry, bdy, opt);
+put     (url, qry, bdy, opt)  =&gt;  send(&quot;PUT&quot;    , url, qry, bdy, opt);
+patch   (url, qry, bdy, opt)  =&gt;  send(&quot;PATCH&quot;  , url, qry, bdy, opt);
+unlink  (url, qry, bdy, opt)  =&gt;  send(&quot;UNLINK&quot; , url, qry, bdy, opt);
+</code></pre><h6 id="error-codes-descriptions">Error Codes &amp; Descriptions:</h6>
+<div class="table"><table>
+  <thead>
+    <tr>
+      <th>Error Code </th>
+      <th>Error Text</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>UnrecognizedContentType</code> </td>
+      <td>HTTP response did not contain usable content</td>
+    </tr>
+    <tr>
+      <td><code>HTTP_nnn</code> </td>
+      <td>The text for HTTP response codes is obtained from the HTTP server&rsquo;s response.</td>
+    </tr>
+  </tbody>
+</table></div><p><p><span class="status-stable">Status: </span> <p><span class="since">1.00</span></p>
+<h3 id="function-sendbeacon-url-qry-bdy">sendBeacon(url, qry, bdy)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Sends a beacon message.</p><p>Beacon messages are guaranteed by the browser to reach the server (unless the browser itself is closed). They are asynchronous, always use <code>POST</code>, and may contain query data or content.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>url         URL to POST.
+qry         Optional query object or value.
+bdy         Optional body object, array or value. Encoded as JSON.
+=&gt;          A Promise, resolved if the beacon was queue, rejected if it was not.
+</code></pre><p><p><span class="status-stable">Status: </span> <p><span class="since">7.00</p></p>
+<h3 id="function-addmethod-nam-vrb">addMethod(nam,vrb)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Add a new API method to this instance, returning a new API object. The original instance is not changed.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>nam         The name of the API function.
+vrb         The name of the HTTP verb; defaults to `nam.toUpperCase()`.
+=&gt;          A new object consisting of the current exports plus the new API function.
+</code></pre><h6 id="example">Example</h6>
+<pre><code>let ajax=new Ajax(...).addMethod(&quot;rename&quot;); // map ajax.rename(url, qry, bdy, opt) to send HTTP &quot;RENAME ...&quot; request
+ajax.rename(&quot;/some/resource&quot;,&quot;target=/some/other/resource&quot;); // rename a resource
+</code></pre><p><p><span class="status-stable">Status: </span> <p><span class="since">1.00</span></p>
+<h3 id="function-debug-on">debug(on)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get/set debug flag.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>flg         Set true/false to set debugging of data messages, omit to get current state.
+=&gt;          The value of debug if no argument give; this object if one is supplied.
+</code></pre><h6 id="example-1">Example</h6>
+<pre><code>let ajax=new Ajax(...).debug(true);
+console.print(ajax.debug() ? &quot;Debugging is enabled&quot; : &quot;Debugging is disabled&quot;);
+ajax.debug(false);
+</code></pre><p><p><span class="status-stable">Status: </span> <p><span class="since">1.00</span></p>
+<h3 id="function-objtourldata-dta">objToUrlData(dta)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Encode an object as URL query data.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>dta         Object to encode.
+=&gt;          The query data string.
+</code></pre><p><p><span class="status-stable">Status: </span> <p><span class="since">1.00</span></p>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../net/!overview.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../net/DataLink.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

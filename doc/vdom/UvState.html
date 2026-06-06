@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/UvDom.html'>prev</a></span> <span title="Next Page (Arrow Right)"></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="state">State</h1><p>These functions provide a minimal, but capable, set of reactive primatives which work very well to store and work with state for an application. It is particularly useful to make a UvDOM app reactive. Effectively, these functions make explicit and obvious what other frontend systems try to hide with &ldquo;magic&rdquo; functionality.</p><p><span class="status-stable">Module Status: </span></p><h6 id="construction">Construction</h6>
+<pre><code>new UvState()
+</code></pre><h6 id="dependencies">Dependencies:</h6>
+<pre><code>[util/GeneralUtil](GeneralUtil.html)
+</code></pre>
+<h3 id="function-pgs-curval-chgcbk-stgnam-cbkini">pgs(curval,chgcbk,stgnam,cbkini)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<ul>
+  <li>Create a property getter/setter function optionally with (a) an on-change callback, and (b) a local-storage property</li>
+  <li>name used to save/restore the last known value.  *</li>
+  <li><span class="status-stable">Status: </span>  *</li>
+  <li><strong>Arguments &amp; Return:</strong>  *</li>
+  <li>curval Optional initial value, used if local-storage value is not used or not set.</li>
+  <li>chgcbk Optional callback invoked when the property is changed.</li>
+  <li>stgnam Optional local-storage property name to persist the property.</li>
+  <li>cbkini Optional boolean flag to invoke callback when initializing value. Defaults to false.</li>
+  <li>=&gt; A getter/setter function.  *</li>
+  <li>If specified, the on-set callback will be invoked whenever the property is set to a value which is not strictly</li>
+  <li>equal to the current value unless the set explicitly suppresses the callback. This callback can return a value other</li>
+  <li>than undefined to override the value it was passed. This can veto the change (by returning old) or override (e.g.</li>
+  <li>for formatting, augmenting, etc) values as they are set.  *</li>
+  <li>Note that as of version 8.06 the value and local store are set <em>before</em> the callback is invoked and then set again</li>
+  <li>if the callback overrides the supplied value. This is to permit invocation of other code that needs the new value to</li>
+  <li>be visible via the PGS value. Obviously, such code will not see the overriding value if one is returned. Previously</li>
+  <li>other code had to be deferred in order to see the updated value.  *</li>
+  <li>The local-storage property name is used to to persist/recall the value in local storage whenever it changes.  *</li>
+  <li>If the <code>cbkini</code> flag is <code>true</code>, the callback will be immediately invoked inline, with the <code>curval</code> specified and</li>
+  <li>the <code>oldval</code> set to <code>undefined</code>.  *</li>
+  <li>The returned function has the property <code>isPGS</code> set to true. In the rare event that this PGS should not be treated</li>
+  <li>as one by generic processing functions like <a href="#function-comparator">comparator</a> and <a href="#function-pgswrap">pgsUnwrap</a>, this may be set to false.  *</li>
+  <li><h6 id="getter-setter-code-function-setval-skpcbk-code">Getter/Setter: <code>function(setval,skpcbk)</code></h6> *</li>
+  <li>setval Optional value to set.</li>
+  <li>skpcbk Optional boolean flag to skip callback invocation when setting value.</li>
+  <li>=&gt; The current property value.  *</li>
+  <li><h6 id="callback-code-function-newval-oldval-code">Callback: <code>function(newval,oldval)</code></h6> *</li>
+  <li>newval New property value. x * oldval Old property value.</li>
+  <li>=&gt; Optional overriding value; if defined the property is set to that returned.  *</li>
+  <li><h6 id="getter-setter-api">Getter/Setter API</h6> *</li>
+  <li>pgs() Get the property value.</li>
+  <li>pgs(val) Set the property value to <code>val</code>.</li>
+  <li>pgs(val,true) Set the property value to <code>val</code> skipping the change-callback.</li>
+  <li>pgs.isPGS A boolean flag to identify this as a PGS function.</li>
+  <li>pgs.chainVal() Specifies a value to be returned when the value is set; the default is the new value. This allows</li>
+  <li>for call-chaining on the model containing the PGS. This function itself returns the PGS so it</li>
+  <li>can be called inline when creating the PGS, e.g. <code>let myProp = gu.pgs(1).chainVal(EXPORTED);</code>.</li>
+  <li>pgs.toJSON() Extract the (unencoded) value for <code>JSON.stringify()</code>. Note, this somewhat misleading name is</li>
+  <li>dictated by the <code>stringify</code> function.</li>
+  <li>pgs.toString() Return the PGS value as a string.</li>
+</ul>
+<h3 id="function-pgsget-prp-err">pgsGet(prp,err)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Convert a <code>PGS</code> to read-only getter, optionally throwing Error on write.</p><p><span class="status-stable">Status: </span></p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>prp             Property to wrap.
+err             Error text to throw if write is attempted. Optional. Recommended format `&quot;[SomeCode] Description...&quot;`.
+=&gt;              A getter function.
+</code></pre><p>If no error is supplied, writes attempts are silently ignored, otherwise invoking the getter with parameters throws an error.</p>
+<h3 id="function-pgspathselector-pths">pgsPathSelector(pths)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>PGS property selector for clone, pgsWrap, etc. The properties are specified by path from the object root.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>pths (string[]) The property or properties to select.
+=&gt;              A property selector with signature `selector(pth,key,val)`.
+</code></pre>
+<h3 id="function-pgstoggle-pgs">pgsToggle(pgs)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Toggle a boolen PGS property.</p><p><span class="status-stable">Status: </span></p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>pgs (pgs)       The PGS property to toggle.
+=&gt;              The new value.
+</code></pre>
+<h3 id="function-pgsunwrap-obj-selfnc-xfmfnc-reffnc">pgsUnwrap(obj,selfnc,xfmfnc,reffnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep-clone an object or array, turning each field value into a plain value from a <code>pgs()</code> getter/setter.</p><p><span class="status-stable">Status: </span></p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object or array to clone.
+selfnc          An optional function to select members to copy.
+xfmfnc          An optional transformer function.
+reffnc          An optional function to select objects to copy by reference.
+=&gt;              The cloned object.
+</code></pre><h6 id="selector-transformer-arguments">Selector &amp; Transformer Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key or aray index.
+val             Object or array value.
+</code></pre><p>Traversal order is depth-first, with key order defined by JavaScript.</p><p>Keys and array elements which are <code>undefined</code> are dropped. Unless excluded by the selector Boolean, Number and String objects are converted to their primitive counterparts. They are then passed to the transform function, if supplied.</p><p>JavaScript class objects are always copied by reference.</p><p>An optional field selector may be provided and which conditionally selects object properties to be copied.</p><p>An optional field transformer may be provided which alters property values after they are copied. The transformer is called on objects <em>after</em> they have been recursed and processed.</p><p>An optional copy-by-reference selector may be provided which identifies objects which are not deep cloned. If this returns true, the object reference is simply assigned and no further processing is done. Therefore that object&rsquo;s fields are not evaluated by the field selector or field transformer.</p>
+<h3 id="function-pgswrap-obj-selfnc-xfmfnc-reffnc">pgsWrap(obj,selfnc,xfmfnc,reffnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep-clone an object or array, turning each simple field value into a <code>pgs()</code> getter/setter.</p><p><span class="status-stable">Status: </span></p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object or array to clone.
+selfnc          An optional function to select members to copy.
+xfmfnc          An optional transformer function.
+reffnc          An optional function to select objects to copy by reference.
+=&gt;              The cloned object.
+</code></pre><h6 id="selector-transformer-arguments-1">Selector &amp; Transformer Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key or array index.
+val             Object or array value.
+</code></pre><p>Traversal order is depth-first, with key order defined by JavaScript.</p><p>Keys and array elements which are <code>undefined</code> are dropped. Unless excluded by the selector Boolean, Number and String objects are converted to their primitive counterparts. They are then passed to the transform function, if supplied.</p><p>JavaScript class objects are always copied by reference.</p><p><strong>NOTE:</strong> Objects (structures) are not turned into properties, only member values.</p><p>An optional field selector may be provided and which conditionally selects object properties to be copied.</p><p>An optional field transformer may be provided which alters property values after they are copied. The transformer is called on objects <em>after</em> they have been recursed and processed.</p><p>An optional copy-by-reference selector may be provided which identifies objects which are not deep cloned. If this returns true, the object reference is simply assigned and no further processing is done. Therefore that object&rsquo;s fields are not evaluated by the field selector or field transformer.</p>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/UvDom.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

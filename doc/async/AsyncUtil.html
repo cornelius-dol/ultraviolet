@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../async/!overview.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../async/PromiseUtil.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="asyncutil">AsyncUtil</h1><p>Aynchronous utility functions.</p><p><span class="status-stable">Module Status: </span></p>
+<h3 id="function-debounce-dly-fnc-fxdargs">debounce(dly,fnc,fxdargs)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Creates a debounced function which only executes after the specified delay and at most once per event-loop. Similar to <a href="#throttle">throttle</a>, this wrapper differs in that the delay is imposed from the last call of the debouncing wrapper function. Debouncing should be thought of as deferring an action until idle for the specified time.</p><p>The debounced function executes with the arguments bound in this call plus those passed in the most recent call.</p><p>The debounced function has a <code>cancel</code> function which will clear any pending invocation.</p><p>Use like this:</p>
+<pre><code>let windowResized=debounce(250,function(evt) {
+    // All the taxing stuff you do when windows is resized (evt is from the event listener invocation)
+    });
+globalThis.addEventListener(&#39;resize&#39;, windowResized);
+</code></pre><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>dly             The number of milliseconds to delay execution. Defaults to 333.
+fnc             The function to call (arguments will be passed on after any bound arguments).
+fxdargs...      The fixed arguments to pass to the returned function before any supplied when it is invoked.
+=&gt;              A new function which debounces the given function.
+</code></pre>
+<h3 id="function-defer-dly-fnc-args">defer(dly,fnc,args)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Facilitates deferral of a code block to the event-loop for operations that cannot occur inline.</p><p>Use like this:</p>
+<pre><code>// defer to next event loop
+defer(function() {
+    ... the code here
+    });
+
+// defer for a specific time
+defer(2000,function() {
+    ... the code here
+    });
+
+// defer for a specific time with bound arguments
+defer(2000,someFunction,val1,val2);
+</code></pre><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>dly             The number of milliseconds to delay execution; optional, defaults to 0.
+fnc             The function to call.
+args...         Arguments to pass to `fnc`. Optional.
+=&gt;              The timer ID.
+</code></pre>
+<h3 id="function-deferaf-fnc-args">deferAF(fnc,args)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Facilitates deferral of a code block to the next animation frame for operations that cannot occur inline. Falls back to the event loop if animation frames are not supported.</p><p>Use like this:</p>
+<pre><code>// defer to next frame
+deferAF(function() {
+    ... the code here
+    });
+
+// defer with bound arguments
+deferAF(someFunction,val1,val2);
+</code></pre><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>fnc             The function to call.
+args...         Arguments to pass to `fnc`. Optional.
+=&gt;              The timer ID from `setTimeout` or `requestAnimationFrame`.
+</code></pre>
+<h3 id="function-testdefer-dly-fnc">testDefer(dly,fnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Facilitates artificial deferral of a code block for testing asynchronous operations which typically occur too quickly. Emits console warnings that the wrapped code is artificially deferred.</p><p>Use like this:</p>
+<pre><code>/**/testDefer(2000,function() {
+... the code here
+/**/});
+</code></pre><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>dly             The number of milliseconds to delay execution.
+fnc             The function to call.
+</code></pre>
+<h3 id="function-throttle-dly-fnc-fxdargs">throttle(dly,fnc,fxdargs)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Creates a throttling function which executes no more frequently than a fixed delay and at most once per event-loop. Similar to <a href="#debounce">debounce</a>, this wrapper differs in that the delay is imposed between executions of the provided wrapped function. Throttling should be thought of as limiting the frequency an action.</p><p>The throttling function executes with the arguments passed in the most recent call.</p><p>The throttling function has a <code>cancel</code> function which will reset the throttle and clear any pending invocation.</p><p>The principle use of this is to ensure an action occurs on the event loop without risk of flooding the queue with many redundant invocations (and potentially temporarily leaking large amounts of memory and/or overwhelming the system&rsquo;s timer tables).</p><p>Use like this:</p>
+<pre><code>let throttled=throttle(someFunction);                       // throttle for the default deley
+let throttled=throttle( 100,someFunction);                  // throttle for 100 milliseconds; no arguments bound.
+let throttled=throttle(3000,someFunction,val1,val2);        // throttle for 3 seconds with bound arguments
+</code></pre><p>Invoke throttled function like this:</p>
+<pre><code>throttled();                                                // call throttled function with only bound arguments
+throttled(val1,val2);                                       // call throttled function with bound arguments plus `val1` and `val2`.
+throttled.cancel();                                         // cancel pending invocation
+</code></pre><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>dly             The number of milliseconds to delay execution. Optional, defaults to 333.
+fnc             The function to call. Optional. If omitted any existing function will be cancelled.
+fxdargs...      The fixed arguments to pass to the returned function before any supplied when it is invoked.
+=&gt;              A new function which throttles the given function.
+</code></pre><h6 id="arguments-return-for-code-fnc-code">Arguments &amp; Return for <code>fnc</code>:</h6>
+<pre><code>args-1          Trailing arguments passed to the creating function.
+args-2          All arguments passed to last invocation of the throttled function.
+=&gt;              True if the function was queued; false if it was already queued.
+</code></pre>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../async/!overview.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../async/PromiseUtil.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

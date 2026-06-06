@@ -1,0 +1,351 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/1.Overview.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/3.Converting-From-DOMVM.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="programmer-guide">Programmer Guide</h1><p><a href="#view-descriptions">View Descriptions</a><br> <a href="#dom-structural-stability">DOM Structural Stability</a><br> <a href="#components">Components</a><br> <a href="#other-considerations">Other Considerations</a><br></p><h2 id="view-descriptions">View Descriptions</h2><h6 id="quick-reference">Quick Reference</h6><p>For the impatient, the following code provides the gist of what view description code looks like. These examples resemble those given for DOMVM, the excellent vDOM library that provided much inspiration for Ultraviolet. This is duplication is in part for developers coming from DOMVM to be able to make a like-for-like comparison.</p><p>Given:</p>
+<pre><code>const uvDom     = new UvDom({ name: &quot;Examples&quot; })
+,     vw        = uvDom.define
+,     vwIsland  = uvDom.island
+,     vwUpdate  = uvDom.update;
+
+</code></pre><p>Basic:</p>
+<pre><code>vw(&quot;p&quot;, &quot;Hello&quot;)                                                                // plain tags
+vw(&quot;textarea#foo.bar.baz&quot;, { rows: 10 }, &quot;Hello&quot;)                               // id &amp; class shorthands
+vw(&quot;.kitty&quot;, &quot;Hello&quot;)                                                           // &quot;div&quot; can be omitted from tags
+
+vw(&quot;input&quot;,  {type: &quot;checkbox&quot;, checked: true})                                 // boolean attrs
+
+vw(&quot;button&quot;, { onclick: myFunc }, &quot;Hello&quot;)                                      // event handlers
+vw(&quot;button&quot;, { onclick: {f: myFunc, a: anArg }, &quot;Hello&quot;)                        // with a bound arg
+vw(&quot;button&quot;, { onclick: {f: myFunc, a: [arg1,arg2] }, &quot;Hello&quot;)                  // with multiple bound args
+
+vw(&quot;p&quot;,      { style: &quot;font-size: 10px;&quot;  }, &quot;Hello&quot;)                           // style can be a string
+vw(&quot;p&quot;,      { style: { fontSize: &quot;10px&quot;, &quot;z-index&quot;: 1 }}, &quot;Hello&quot;)             // or an object (camelCase, or quoted with `-`)
+
+vw(&quot;h1&quot;, [                                                                      // attrs object is optional
+    &quot;foo&quot;, 123, false, true,                                                    // plain values
+    vw(&quot;em&quot;, &quot;Important!&quot;),                                                     // element with single child
+    vw(&quot;em&quot;, [&quot;Also&quot;,&quot;Important!&quot;]),                                            // element with multiple children
+    vw(&quot;br&quot;),                                                                   // void tags without content
+    null,                                                                       // will create a comment placeholder
+    undefined,                                                                  // will be dropped
+    NaN,  Infinity, { valueOf: &quot;Yay!&quot; },                                        // these will be coerced to strings via `$dom`
+    injector,                                                                   // inject existing/foreign DOM
+    [                                                                           // nested arrays are flattened with almost no performance penalty.
+        vw(&quot;.foo&quot;, { class: &quot;bar&quot; }, [                                          // embedded &amp; attr class get merged: &quot;foo bar&quot;
+            &quot;Baz&quot;,
+            vw(&quot;hr&quot;),
+            ])
+        ],
+    ]);
+</code></pre><p>Component:</p>
+<pre><code>let navBar = new NavBar({ text: &quot;CArt&quot;  , url: &quot;/cart&quot;  });
+
+vw(&quot;#ui&quot;, [
+    navBar,
+    ]);
+
+function NavBar(pagnav) {
+    let EXPORTED            = {}
+    ,   updateUi            = vwIsland(defineNavBar, EXPORTED);
+
+    const items = Object.freeze([
+        { text: &quot;Home&quot;      , url: &quot;/&quot;          },
+        { text: &quot;Products&quot;  , url: &quot;/products&quot;  },
+        { text: &quot;About Us&quot;  , url: &quot;/about&quot;     },
+        ...pagnav,
+        ]);
+
+    function defineNavBar() {
+        return vw(&quot;.nav-bar&quot;, items.map((itm) =&gt; (vw(&quot;a.nav-bar-item&quot;, { href: itm.url }, itm.text))));
+        }
+
+    return EXPORTED;
+    }
+</code></pre><p>Third Party Wrapper:</p>
+<pre><code>function ForeignHost() {
+    let EXPORTED            = {}
+    ,   updateUi            = vwIsland(defineWrapper, EXPORTED);
+
+    function defineWrapper() {
+        return vw(&quot;.foreign-wrapper&quot;, { $insert: insert, $remove: remove });
+        }
+
+    function insert(nod,par) {
+        // populate nod content; don&#39;t change nod itself
+        }
+
+    function remove(nod,par) {
+        // any required cleanup
+        }
+
+    return EXPORTED;
+    }
+</code></pre><h6 id="view-details">View Details</h6><p>Technically defined, views in Ultraviolet are the structure produced by <code>UvDom.define()</code>. Each element of the desired DOM is described by an object as follows: <code>{ tag: &quot;&quot;, atr: {}, chn: [], $uv: {} }</code>. The tag is the name of the element; the attribute structure is the <em>processed</em> contents of the one provided to <code>define</code>; the children array contains the children of the element, either simple values or nested elements.</p><p>The attributes structure specifies all HTML attributes for the element, including <code>style</code> which may be provided as a string or object which is processed into a string.</p><p>Children can be any JavaScript primitive value or any object which provides a <code>valueOf</code> function. When only one child is needed, the array wrapper may be omitted. Children which are functions are not permitted (nor are they needed, nor especially useful). Of course, one may invoke a function dropping its return value in to the array. For this reason, nested arrays are recursively iterated and their contents added to the node being created <em>as if they were specified at the top level</em>. In this way, it is efficient and convenient to have functions return arrays of children to be added to a view, which makes composing views from many functions effortless and efficient.</p><p>The reserved <code>$uv</code> belongs to, and is used by, Ultraviolet and its contents may change at any time without notice. This structure is also attached to the DOM node created and is used by Ultraviolet in rendering. Applications <strong>MUST NOT</strong> access this object.</p><p>To mount a view into the page, use the <code>UvDom</code> <code>update()</code> or <code>island()</code> functions to create an updater which links a view description function to a DOM node:</p>
+<pre><code>const { define  : vw
+,       update  : vwUpdater
+,       insights: vwInsights } = new UvDom({ name: &quot;My Application&quot; });
+
+const   updateUi = vwUpdater(rootView,document.getElementById(&quot;app&quot;))
+</code></pre><p>When your application is ready, simply issue a call to <code>updateUi()</code> and the view will be rendered and mounted.</p><h6 id="event-listeners">Event Listeners</h6><p>All event handlers are specified using the <code>onxxx</code> convention, even those for newer events where this is not supported by the DOM.</p><p>Event handlers may be a function or a special object like so: <code>{ f:function, a:args }</code>. All events are wired into a special function within Ultraviolet, which delegates to the specified function. In this way event handler leaks are impossible, and the listeners are reliably removed when the DOM node is discarded.</p><p>One <strong><em>should not</em></strong> use anonymous/arrow functions for capturing data from the current closure. No harm is done by using an arrow function, but it is inefficient and unnecessary.</p><h6 id="special-attributes">Special Attributes</h6><p>In addition to the normal HTML attributes, several special attributes are permitted. These all begin with a <code>$</code> symbol to avoid name collision with HTML.</p><p><strong>Special Features</strong></p>
+<div class="table"><table>
+  <thead>
+    <tr>
+      <th>Attribute </th>
+      <th>Effect</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>$data </td>
+      <td>Attaches application data to the description and DOM node, which is accessible via <code>UvDom.dataOf(elm,anc)</code>.</td>
+    </tr>
+    <tr>
+      <td>$debug </td>
+      <td>Activates debugging information for the view layer.</td>
+    </tr>
+  </tbody>
+</table></div><p><strong>DOM Action Handlers</strong></p><p>DOM action Handlers are invoked when specific actions are taken on DOM nodes. Some common requirements are to use a render-completion handler to obtain a reference to the node, and to use insert/remove handlers to add and remove things like a resize observer.</p>
+<div class="table"><table>
+  <thead>
+    <tr>
+      <th>Attribute </th>
+      <th>Effect</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>$create </td>
+      <td>Invoked when a DOM node is created, before it is attached to the DOM.</td>
+    </tr>
+    <tr>
+      <td>$insert </td>
+      <td>Invoked after a DOM node is inserted into the DOM.</td>
+    </tr>
+    <tr>
+      <td>$remove </td>
+      <td>Invoked before a DOM node is removed from the DOM.</td>
+    </tr>
+    <tr>
+      <td>$render </td>
+      <td>Invoked after a DOM node and its children have been (re)rendered.</td>
+    </tr>
+  </tbody>
+</table></div><p>DOM handlers receive the affected DOM node and its parent as the first two arguments, following which are any arguments bound to the handler when it was defined.</p><p>These same action names (sans &ldquo;$&rdquo;) are used to populate the <code>dom</code> section of the insights object.</p><p>Examples:</p>
+<pre><code>vw(&quot;div&quot;, {
+    $insert: elmInserted,
+    $remove: {f:elmRemoved, a:[&quot;Custom Arg&quot;]},
+    },[
+        ...
+    ]);
+
+function elmInserted(nod,par) {
+    // div was inserted into par
+    }
+
+function elmRemoved(nod,par,arg) {
+    // nod was removed from par
+    // arg =&gt; &quot;Custom Arg&quot;
+    }
+</code></pre><h6 id="xml-namespaces">XML Namespaces</h6><p>SVG, MathML, and other XML-in-HTML nodes can be incorporated by specifying the XML namespace attribute, <code>xmlns</code>. Only the top level namespace is required, unless processing of attributes, such as from mixedCase to kebab-case, is not wanted.</p><p>Elements automatically inherit the namespace of their parent when rendered, unless a non-blank namespace is specified. You <strong>DO NOT</strong> need to specify the HTML5 namespace for any element unless it is declared inside a non-HTML namespace. The HTML5 namespace is the default for rendering.</p><p>Note that namespaces are only handled for elements, expecting relatively simple, pragmatic use-cases involving, for example, SVG utilizing shadow-DOM. For fully fledged namespace including attributes, some sort of namespace resolver would have to be supplied and utilized during rendering. There is no plan for this level of XML support at this time.</p><p>Child elements automatically inherit the namespace determined for their parent, so an <code>xmlns</code> attribute is only needed on the root of a subtree unless the namespace changes mid-tree. To embed HTML inside an SVG <code>foreignObject</code>, specify the HTML namespace on that element (or the first HTML element) so that the DOM switches back to the appropriate namespace.</p><p>Examples of SVG image view-generator functions are as follows:</p>
+<pre><code>function svgPath(cls,box,pth) {
+    let xmlns = &quot;http://www.w3.org/2000/svg&quot;;
+    return vw(&quot;svg&quot;+cls, {
+        xmlns,
+        viewBox                     : box,
+        style: {
+            fill                    : &quot;currentColor&quot;,
+            color                   : &quot;#080&quot;,
+            height                  : &quot;1.25em&quot;,
+            width                   : &quot;1.25em&quot;,
+            }
+        },[
+        vw(&quot;path&quot;,{
+            d                       : pth
+            }),
+        ]);
+    }
+
+function svgIcon(idn,cls) {
+    let xmlns = &quot;http://www.w3.org/2000/svg&quot;;
+    vw(&quot;svg&quot;, {
+        xmlns,
+        style                       : { fill: &quot;currentColor&quot;, height: &quot;1.25em&quot;, width: &quot;1.25em&quot; }
+        },[
+        vw(&quot;use&quot;, {
+            href                    : iconUrl+&quot;#&quot;+idn,
+            ariaHidden              : true,
+            focusable               : false
+            }),
+        ]);
+    }
+
+function svgPanel(content) {
+    let xmlnsSvg  = &quot;http://www.w3.org/2000/svg&quot;;
+    let xmlnsHtml = &quot;http://www.w3.org/1999/xhtml&quot;;
+    return vw(&quot;svg&quot;, {
+        xmlns      : xmlnsSvg,
+        viewBox    : &quot;0 0 120 60&quot;,
+        },[
+        vw(&quot;foreignObject&quot;, {
+            width  : 120,
+            height : 60,
+            },[
+            vw(&quot;div&quot;, {
+                xmlns : xmlnsHtml,
+                class : &quot;svg-panel&quot;,
+                }, content)
+            ])
+        ]);
+    }
+</code></pre><h2 id="dom-structural-stability">DOM Structural Stability</h2><p>To achieve its small size and superlative performance Ultraviolet depends on structural stability of the underlying DOM to be able to efficiently identify nodes for reuse when updating a view. For this reason, the view should avoid changing the number of children from render to render, but instead optional elements should be substituted with <code>null</code> when they are not rendered.</p><p>It is for this reason that Ultraviolet treats <code>null</code> children as significant elements and creates a comment node placeholder to represent them — this allows elements to be optional from render to render without destabilizing the underlying DOM structure. Conversely, <code>undefined</code> is also permitted for a child, in which case the node is entirely omitted, and this is fine when stability is either not required or not affected, such as rendering a button with optional icons — particularly if the optional element is <em>always</em> omitted in a particular use case.</p><p>An unstable structure can negatively affect focus management and cause loss of the insertion point for elements which are recreated rather than updated. It should never result in an incorrect DOM.</p><h6 id="examples">Examples</h6><p>Usually this &ldquo;element or null&rdquo; form is the natural way to code an optional element anyway, with a declarative, inline ternary; for example:</p>
+<pre><code>function describeDataView() {
+    return vw(&quot;&quot;,
+        vw(&quot;h3&quot;,[&quot;User List&quot;]),
+        (showList() ? userList : null),
+        `Showing ${userList.filteredSize()} of ${userList.totalSize()} records`,
+        ]);
+    }
+</code></pre><p>However, when something is always either present or omitted, or when structure doesn&rsquo;t matter, the DOM size can be reduced by using <code>undefined</code>; for example, such as a button generator with optional text and icons</p>
+<pre><code>function button(icn1,txt,icn2) {
+    return vw(&quot;button&quot;,[
+        icn1 ? genIcon(icn1) : undefined,
+        text ? text          : undefined,
+        icn2 ? genIcon(icn2) : undefined,
+        ]);
+    }
+</code></pre><p>For the occasion where an indeterminate number of things must be inserted into a view one should group these inside a container, like so:</p>
+<pre><code>function describeDataView() {
+    return vw(&quot;&quot;,
+        vw(&quot;h3&quot;,[&quot;User List&quot;]),
+        (userInsertions() &gt; 0 ? describeUserInsertions() : null),
+        (showList() ? userList : null),
+        `Showing ${userList.filteredSize()} of ${userList.totalSize()} records`,
+        ]);
+    }
+
+function describeUserInsertions() {
+    return vw(&quot;.user-insertions&quot;, userInsertions.map((rcd) =&gt; vw(&quot;.user-insertion&quot;, [...])));
+    }
+</code></pre><h2 id="components">Components</h2><h6 id="overview">Overview</h6><p>Unlike React with &ldquo;Components&rdquo; and DOMVM with &ldquo;Views&rdquo;, Ultraviolet eschews any strong opinion of what constitutes a component by simply working well in a declarative fashion. Components are modules like any other in JavaScript, and to work with another view they simply need to export their update function under the reserved name <code>$dom</code>. For typical components, this is streamlined using the <a href="#function-island-vdm-tgt">island</a> function.</p>
+<pre><code>let updateUi = uvdom.island(defineView, EXPORTED); // My module is now a component
+// or
+let updateUi = uvdom.island(defineView, EXPORTED).mount(rootElement); // My module is now the root component
+</code></pre><p>To successfully function as a component, a module should be self contained, and maintain a DOM tree reflecting its current state. How a component has its internal state changed is entirely up to the designer of the component and is orthogonal to Ultraviolet — all that matters is that if the state changes the component regenerates its DOM tree via the same update/island function that was exported. This will automatically update the live DOM if the component is already mounted.</p><p>This means that in Ultraviolet components are trivially easy to write and have no inherent constraints on their design.</p><p><strong>BEWARE</strong>, though, that this also means that for a component to update its UI it must be aware that it&rsquo;s state has changed, which means that sharing mutable state with another component (such as an array of values) should be avoided; instead the component should make a copy of said state, which is subsequently explicitly updated if the parent&rsquo;s state changes.</p><h6 id="example-component">Example Component</h6>
+<pre><code>function CptExample(vwCfg,vwDta)
+{&quot;use strict&quot;;
+const EXPORTED={}; function exported(val,nam,obj){(obj||EXPORTED)[nam||val.name]=val;return val}
+//**********************************************************************************************************************
+
+vwCfg               ??= {};
+vwDta               ??= {};
+
+const vw            = uvDom.define
+,     vwUpdate      = uvDom.island(defineExample,EXPORTED);
+
+const fields        = [ &quot;Name&quot;, &quot;Address&quot;, &quot;Phone&quot; ];
+
+//**********************************************************************************************************************
+
+function init() {
+    // ... do stuff here
+    }
+
+/** Data updated from external call. */
+exported(updateData);
+function updateData(dta) {
+    if(vwDta!==dta) {
+        vwDta = dta;
+        // ... may do any preprocessing here to reduce the work needed when defining the view.
+        vwUpdate();
+        }
+    }
+
+//**********************************************************************************************************************
+// VIEWS
+//**********************************************************************************************************************
+
+/** Defines the view, from current data. */
+function defineExample() {
+    return vw(&quot;.address-list&quot;, [
+        vw(&quot;h1&quot;, &quot;Example Component&quot;),
+        vw(&quot;table&quot;, [
+            vw(&quot;tr.head&quot;, fields.map((fld) =&gt; (vw(&quot;th&quot;,fld)))),
+            vwDta.records.map((rcd) =&gt; {
+                return vw(&quot;tr.body&quot;, fields.map((fld) =&gt; (vw(&quot;td&quot;, { onclick: { f:evtRecordSelected, a:rcd }}, rcd[fld]))));
+                }),
+            ]),
+        ]);
+    }
+
+//**********************************************************************************************************************
+// EVENTS &amp; CALLBACKS
+//**********************************************************************************************************************
+
+function evtRecordSelected(evt,rcd) {
+    // do something with the record here.
+    }
+
+//**********************************************************************************************************************
+init();
+return EXPORTED;
+}
+</code></pre><h2 id="other-considerations">Other Considerations</h2><h6 id="third-party-integration">Third-Party Integration</h6><p>Most third-party code will be integrated with Ultraviolet by either: (a) utilizing the <code>$insert</code> and <code>$remove</code> lifecycle-handlers; or (b) by implementing a very thin layer which exports a <code>$dom</code> function and integrates as a component.</p><p>Because of this ability to directly use a DOM subtree, third-party integrations seldom require use of render callbacks; they can simply be allowed to GC when no longer required. But a <code>$remove</code> lifecycle-handler may allow the programmer to facilitate more timely release of resources (like walking the subtree and removing all event listeners). What is required and what is optimal depends on the third-party design.</p><h6 id="optimization">Optimization</h6><p>First, Ultraviolet is fast — surprisingly fast — so optimizations are rarely needed. For most complex UIs the total time to describe and render a complex view will be measured in single-digit milliseconds on an aging laptop. But if they <em>do</em> become necessary, the most effective strategy is to think like a teenager and avoid unnecessary work.</p><p>Ensuring that the overall DOM structure remains stable in the face of state changes can realize huge improvements in rendering time, since by far the most costly interaction is changing the browser&rsquo;s DOM. With a stable DOM tree Ultraviolet is able to efficiently avoid wholesale destruction and creation of subtrees and minimally update the existing nodes in the tree.</p><p>Another effective strategy is to avoid unnecessary processing while generating the view description. This often entails manipulating the state when it is changed to something more optimal for describing the desired view.</p><p>Finally, view descriptions are constant after creation, so saving or predefining and reusing parts of the view that are not affected by state can often lead to realizing some nominal gains. If memoizing the view, it is also recommended that you deep-freeze them as well, including deep-freezing the app-defined $data object.</p></article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/1.Overview.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/3.Converting-From-DOMVM.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/3.Converting-From-DOMVM.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/UvState.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="ultraviolet-vdom-api">Ultraviolet vDOM API</h1><p>A virtual DOM engine which is minimalist, self-contained, and fail-fast for common mistakes.</p><p>Strictly speaking, the only APIs which are necessary to write Ultraviolet applications and components are <a href="#function-define-tag-atr-chn">define</a>, <a href="#function-update-vew-nod">update</a>, and <a href="#function-island-vew-tgt">island</a>. For an in-depth understanding of Ultraviolet usage please refer to the <a href="2.Ultraviolet-Programmer-Guide.html">Ultraviolet Programmer Guide</a>.</p><p><span class="status-stable">Module Status: </span></p><p>Functions:</p>
+<ul>
+  <li><a href="#function-define-tag-atr-chn">define</a></li>
+  <li><a href="#function-island-vew-tgt">island</a></li>
+  <li><a href="#function-update-vew-nod">update</a></li>
+  <li><a href="#function-render-vew-nod">render</a></li>
+  <li><a href="#function-dataof-obj-anc">dataOf</a></li>
+  <li><a href="#function-insights-val">insights</a></li>
+</ul><h6 id="module-construction">Module Construction</h6>
+<pre><code>const uvDom     = new UvDom({ name: &quot;Examples&quot; })
+</code></pre><h6 id="module-config">Module Config</h6><p>All config values are optional.</p>
+<div class="table"><table>
+  <thead>
+    <tr>
+      <th>Property </th>
+      <th>Type </th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>name </td>
+      <td>String </td>
+      <td>The name of the UI being rendered for errors and debugging.</td>
+    </tr>
+    <tr>
+      <td>document </td>
+      <td>Object </td>
+      <td>The document for which DOM nodes will be created. Defaults to global <code>document</code>.</td>
+    </tr>
+    <tr>
+      <td>log </td>
+      <td>function </td>
+      <td>A function to use for logging. Defaults to <code>console.log</code> with a bound prefix.</td>
+    </tr>
+    <tr>
+      <td>printNode </td>
+      <td>function </td>
+      <td>A function to use for printing a node for logging and debugging.</td>
+    </tr>
+  </tbody>
+</table></div>
+<h3 id="function-define-tag-atr-chn">define(tag,atr,chn)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Define a vDOM element.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>tag (string)        The DOM element tag name (e.g. div, span, p, ...).
+atr (object)        An object containing the attributes of this vDOM element..
+chn                 A value or array of children of this element.
+=&gt;                  A vDOM structure describing this element.
+</code></pre><p>An element vDOM is a relatively simple structure that declaratively represents what the browser DOM should look like. Ultraviolet makes no changes to the returned structure while rendering (though the <code>$uv</code> property is directly transferred to the DOM element) so they can be frozen, memoized, and reused.</p><p>The tag name can be used to specify an <code>id</code> and <code>class</code> value using CSS-style notation of <code>tag#id.class.class2...</code>. If specified, the ID must immediately follow the tag. If an ID is also specified as an attribute the attribute will override that specified in the tag. If a class value is also specified as an attribute it will be appended to any classes specified in the tag.</p><p>Attributes with names starting &lsquo;<code>$</code>&rsquo; are transferred to the <code>$uv</code> structure in the generated vDOM. Any <code>onxxx</code> event handlers are transferred to <code>$uv.onx</code> and when the vDOM is rendered an event listener will be added to invoke the supplied handler.</p><p>The <code>class</code> attribute value can be specified using CSS-style notation as in the tag, which is useful if adopted for the entire code base as it allows searching for <code>.class-name</code> and finding all occurrences in both CSS and code.</p><p>Styles can be specified as either a string or an object; the properties of the object are &ldquo;kebab-cased&rdquo; at the location of any uppercase letters, and the entire name will be converted to lowercase — for example, the mixed case <code>zIndex</code> value will be changed to <code>z-index</code>.</p><p>Event handlers are specified as a specially formed object using <code>{ f: function, a: argument(s) }</code>. If no arguments are required then the value can just be the function reference without using an object.</p><p>Sanity checks are made for common programming errors to detect malformed views early, before rendering.</p><p>The returned structure should not be modified, and doing so <em>will</em> result in code that is brittle in the face of future updates to this library. Do so at your own risk; while not prohibited, it is discouraged and should be done as a solution of last resort.</p><p><strong>WARNING</strong>: For the sake of efficiency, Ultraviolet marks a difference between attributes which are absent and those which are present but null. The set of attributes present in the vDOM contribute to the element&rsquo;s signature and a change in the set of present attributes will cause a re-creation of the DOM element. This means that to remove an attribute from the rendered element without replacing the element, it must be set to <code>null</code> in the vDOM, not omitted or specified as <code>undefined</code>.</p><p><strong>WARNING</strong>: Attribute values of <code>true</code> and <code>false</code> are special-cased to mean presence with a blank value, and absence, with a null value. This is to support boolean attributes such as <code>disabled</code>, <code>checked</code>, and <code>selected</code> which are represented in HTML by their presence or absence. To explicitly set an attribute to the string values <code>&quot;true&quot;</code> or <code>&quot;false&quot;</code>, use those string values, as is required for enumerated attributes such as <code>aria-checked</code> or <code>draggable</code>.</p>
+<h3 id="function-update-vew-nod">update(vew,nod)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Create an asynchronous, coalescing, view-update function, given a view generator function.</p><p><strong>Arguments &amp; Return:</strong></p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td>vew </td>
+      <td>function </td>
+      <td>A virtual-DOM generator function which returns a structure describing some DOM.</td>
+    </tr>
+    <tr>
+      <td>nod </td>
+      <td>Element </td>
+      <td>An existing DOM element to replace. Optional.</td>
+    </tr>
+    <tr>
+      <td>=&gt; </td>
+      <td>function </td>
+      <td>A view-updater which manages updating a DOM node based on view; called to update the DOM with a view.</td>
+    </tr>
+  </tbody>
+</table></div><p>If the optional DOM node is supplied, that node is the mount-point which this view will (momentarily) replace; this is a convenient way to mount a root view into the DOM. If not, then the view must be mounted into the DOM as a component of another view, or by using the <code>mount()</code> function, above.</p><p>The view-updater defers update to the system event queue via setTimeout(). Multiple calls to the view-updater made between event processing will result in a single update being queued, so hundreds of state updates can individually request an update in rapid succession without spamming the event queue. This also gates the updates at about 4ms, and when the tab is not visible, updates may be throttled or paused altogether. The custom render subfunction allows any queuing mechanism be used. This is by design; Ultraviolet is not intended to drive animations, but rather UIs.</p><h6 id="updater-api">Updater API:</h6><p>Updater API functions are properies of the returned updater function.</p><p><strong>mount(nod)</strong></p><p>Mounts or remounts the view immediately. Since 4.00.</p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td>nod </td>
+      <td>The node to replace, if any; otherwise the view is left dismounted.</td>
+    </tr>
+    <tr>
+      <td>=&gt; </td>
+      <td><code>undefined</code></td>
+    </tr>
+  </tbody>
+</table></div><p><strong>custom(fnc)</strong></p><p>Triggers a custom update. Since 4.01.</p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td>fnc </td>
+      <td>The supplied function. If omitted no action is taken.</td>
+    </tr>
+    <tr>
+      <td>=&gt; </td>
+      <td>Whether a custom update is pending.</td>
+    </tr>
+  </tbody>
+</table></div><p>This allows an application supplied function to invoke the update according to some arbitrary rule. The supplied function will be immediately invoked with a single argument, being an internal function to render the DOM. The when <em>that</em> function is invoked, the DOM will be updated. Usually the supplied function will be <code>requestAnimationFrame</code>, resulting in an expedited update. A simple immediate update can be achieved with <code>(f)=&gt;f()</code>. The queued function will ignore any arguments and return <code>undefined</code>.</p>
+<h3 id="function-island-vew-tgt">island(vew,tgt)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Create an asynchronous, coalescing, view-update function, given a view generator function, and add it to the target object. This makes the target a rendering &ldquo;island&rdquo; which can be directly provided to another view. This is usually done by the target object itself to make it usable as an isolated component.</p><p>Islands manage their own rendering independently of the parent that includes them. They should depend entirely and only on their internal state. External state should be explicitly injected into an island whenever it changes. Care should be taken that the view of an island does not incorporate state which it is not managing (and for which, therefore, it is unaware of changes).</p><p><strong>Arguments &amp; Return:</strong></p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td>vew </td>
+      <td>function </td>
+      <td>A virtual-DOM generator function which returns a structure describing some DOM.</td>
+    </tr>
+    <tr>
+      <td>tgt </td>
+      <td>object </td>
+      <td>The target object which is to become an island (usually the exports of the module calling this function).</td>
+    </tr>
+    <tr>
+      <td>=&gt; </td>
+      <td>function </td>
+      <td>A view-updater which manages updating the DOM for this component.</td>
+    </tr>
+  </tbody>
+</table></div><p>Refer also to <a href="#function-update-vew-nod">update</a>.</p><p>Since: 4.00</p>
+<h3 id="function-render-vew-nod">render(vew,nod)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Render a vDOM structure produced by calls to <a href="#function-define-tag-atr-chn">define()</a> into DOM nodes.</p><p>This API is rarely, if ever, needed by an application, though it may be useful in debugging and testing. Most apps will, instead, simply use an updater function produced by <a href="#function-update-vew-nod">update</a> or <a href="#function-island-vew-tgt">island</a>.</p><p><strong>Arguments &amp; Return:</strong></p>
+<div class="table"><table>
+  <tbody>
+    <tr>
+      <td>vew </td>
+      <td>object </td>
+      <td>A virtual-dom structure describing some DOM.</td>
+    </tr>
+    <tr>
+      <td>&quot; </td>
+      <td>function </td>
+      <td>A virtual-dom producer which returns a structure describing some DOM.</td>
+    </tr>
+    <tr>
+      <td>nod </td>
+      <td>Element </td>
+      <td>An existing DOM element to update. Optional.</td>
+    </tr>
+    <tr>
+      <td>=&gt; </td>
+      <td>Element </td>
+      <td>A DOM node tree.</td>
+    </tr>
+  </tbody>
+</table></div><p>If the target node is omitted, a new DOM structure is returned. If the a node is provided, it is updated as minimally as possible to represent the same structure described by the vDOM. If the node is already present in the browser&rsquo;s DOM it is replaced in the parent.</p><p>No magical changes happen to the DOM after rendering; in order to update the DOM tree, it must be rendered again by calling this function with an updated description. The <a href="#function-update-vew-nod">update</a> and <a href="#function-island-vew-tgt">island</a> functions provide ready-made implementations for doing this with a single call, allowing vDOM updates to be easily wired into state changes (for example, as the change callback of a PGS state-value function).</p>
+<h3 id="function-dataof-obj-anc">dataOf(obj,anc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get the data attached to a DOM node.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj (object)        A DOM node or vDOM object.
+anc (boolean)       Optional flag to search for nearest ancestor with data attached. Valid only for DOM nodes.
+=&gt;                  The data, or `undefined` if no data was found.
+</code></pre><p>This allows the arbitrary data which was attached to a node when the view was defined to be extracted from the element without exposing Ultraviolet internals which are subject to change in future versions.</p>
+<h3 id="function-insights-val">insights(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get or set the current degugging insights collector.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>val (object)        An insight collector object. Usually a empty object literal, or NULL to disable insights.
+=&gt;                  The current insight collector.
+</code></pre><p><strong>NB:</strong> This is a developer diagnostic aid, and the counters are subject to revision — it <em>MUST NEVER</em> be depended upon by application logic.</p><p>Debugging insights track how many times specific operations are invoked. They can be used during development to detect aberrant vDOM definitions that result in unstable DOM or excessive DOM manipulations. An insight collector is automatically installed and reported to the console by any elements which have their debug flag set.</p>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../vdom/3.Converting-From-DOMVM.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/UvState.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

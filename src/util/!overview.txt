@@ -1,0 +1,20 @@
+Utility
+=======
+
+The general utility package provides modules which most other JavaScript packages depend on.
+
+Modules and methods should only be added to this package when their use is moderately ubiquitous. The guidelines for
+inclusion would be:
+
+  - Used identically in at least three separate projects.
+  - Stable API with actual use sufficient to demonstrate its completeness.
+
+<span class="status-stable">Package Status: </span>
+
+###### Modules
+
+  - {{@DomUtil}}
+  - {{@FpUtil}}
+  - {{@GeneralUtil}}
+  - {{@NumberUtil}}
+  - {{@StringUtil}}

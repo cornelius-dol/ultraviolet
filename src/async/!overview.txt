@@ -1,0 +1,11 @@
+Async
+=====
+
+The async package provides modules which facilitate use of JavaScript's asynchronous features.
+
+<span class="status-unstable">Package Status: </span>
+
+###### Modules:
+
+  - {{@AsyncUtil}}
+  - {{@PromiseUtil}}

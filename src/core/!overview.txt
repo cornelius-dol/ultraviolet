@@ -1,0 +1,14 @@
+Core
+====
+
+The core package provides modules which most other JavaScript packages depend on.
+
+Modules and methods should only be added to this package if their use is ubiquitous, or very nearly so.
+
+<span class="status-stable">Package Status: </span>
+
+###### Modules:
+
+  - {{@Augmentation}}
+  - {{@Escape}}
+  - {{@ModuleUtil}}

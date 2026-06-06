@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/DomUtil.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../util/NumberUtil.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="generalutil">GeneralUtil</h1><p>General utility functions.</p><p><span class="status-stable">Module Status: </span></p><h6 id="construction">Construction</h6>
+<pre><code>new GeneralUtil()
+</code></pre>
+<h3 id="function-argsarray-basargs-basofs-addargs-addofs">argsArray(basargs,basofs,addargs,addofs)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Convert the JavaScript arguments object to an array. Note that this can be used to either prepend or append additional arguments to a function&rsquo;s input arguments.</p>
+<pre><code>basargs         An arguments object.
+basofs          Offset into `basargs`. Optional; default=0.
+addargs         An additional array or arguments object. Optional.
+addofs          Offset into `addargs`. Optional; default=0.
+=&gt;              An array containing the given arguments.
+</code></pre>
+<h3 id="function-bindargs-fnc-args">bindArgs(fnc/*...args*/)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Return a function which binds predefined arguments for the supplied function.</p>
+<pre><code>fnc             The function to call.
+...arg          Any arguments to bind before the arguments supplied by the caller.
+</code></pre><p>See also: <a href="FpUtil.html#function-curry">FpUtil.curry()</a></p><p>Throws</p>
+<pre><code>Error           If the first argument was not a function.
+</code></pre>
+<h3 id="function-chain-fncs">chain(/*...fncs*/)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Create a chain of function invocation chain. Any null arguments are first removed; if the resulting list is empty, null is returned; if it is a single element, then that singular function is returned. Otherwise a function which invokes all functions in the sequence given is returned.</p>
+<pre><code>...fncs         Functions to chain together.
+=&gt;              A function which will invoke each function in the chain using whatever arguments are given it.
+</code></pre>
+<h3 id="function-clone-obj-selfnc-xfmfnc-reffnc">clone(obj,selfnc,xfmfnc,reffnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep-clone the supplied <strong><em>data</em></strong> object or array.</p>
+<pre><code>obj             The object or array to clone.
+selfnc          An optional function to select members to copy.
+xfmfnc          An optional transformer function.
+reffnc          An optional function to select objects to copy by reference.
+=&gt;              The cloned object.
+</code></pre><h6 id="selector-transformer-arguments">Selector &amp; Transformer Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key or array index.
+val             Object or array value.
+=&gt;              Transformed object, or boolean flag for select/reject.
+</code></pre><p>Traversal order is depth-first, with key order defined by JavaScript.</p><p>Keys and array elements which are <code>undefined</code> are dropped. Unless excluded by the selector Boolean, Number and String objects are converted to their primitive counterparts. They are then passed to the transform function, if supplied.</p><p>JavaScript class objects are always copied by reference.</p><p>An optional field selector may be provided and which conditionally selects object properties to be copied.</p><p>An optional field transformer may be provided which alters property values after they are copied. The transformer is called on objects <em>after</em> they have been recursed and processed.</p><p>An optional copy-by-reference selector may be provided which identifies objects which are not deep cloned. If this returns true, the object reference is simply assigned and no further processing is done. Therefore that object&rsquo;s fields are not evaluated by the field selector or field transformer.</p>
+<h3 id="function-comparator-prps-dft">comparator(prps,dft)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Create an object comparator specifying the properties for comparing. String values are compared case-insensitively.</p>
+<pre><code>prps            Properties to use, in order. May be an array of strings or a CSV string.
+dft             Function to use if all property values test as equal. Default is to consider the objects equal.
+=&gt;              Comparator function.
+</code></pre><h6 id="comparator-arguments-return">Comparator Arguments &amp; Return</h6>
+<pre><code>obj1            A left-value object to compare.
+obj2            A right-value object to compare.
+=&gt;              A value `x` such that `x &lt; 0` for less-than, `x &gt; 0` for greater-than, or `x = 0` for equal.
+</code></pre><p>The comparator returned is used anywhere a standard comparator is needed, e.g. <code>[...].sort(compareObjects)</code>.</p><p>Property names can be marked with <code>!</code> to sort descending and with <code>#</code> to coerce their values to numbers. If both are used they <strong>must</strong> be in the order <code>!#</code>.</p><p>Null/undefined values sort as equal to each and <strong>greater than</strong> all other values. This is handy for eliminating such values by placing them at the end of a sorted array. Post sorting, one can iterate until <code>val==null</code>.</p><p>Note that <a href="#function-pgs">PGS properties</a> are compared using the values they hold.</p>
+<h3 id="function-deepfreeze-obj-skpfnc">deepFreeze(obj,skpfnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Freeze a container object and all of it&rsquo;s subcontainers (as defined by <a href="#function-iscontainer">isContainer</a>). In keeping with Object.freeze(), this operates on the given object, in-situ, and returns the <em>same</em> object.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object to be frozen.
+skpfnc          An optional function to select object/array members to skip.
+=&gt;              The same object supplied in `obj`.
+</code></pre><h6 id="selector-reference-arguments">Selector &amp; Reference Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key.
+val             Object or array value.
+</code></pre><p>JavaScript class objects are not frozen.</p><p>Examples:</p>
+<pre><code>deepFreeze(obj);
+obj=deepFreeze({ ... });
+</code></pre>
+<h3 id="function-deepref-obj-keys-dft">deepRef(obj,keys,dft)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Resolve the nested value in <code>obj</code> using a dot-separated compound key name, or an array of key names. Using an array is more efficient as the dot-separated key needs to be split every time. Most of the time the difference is not relevant. Note that this works similar to optional chaining, which should be preferred, but is useful if the key(s) are dynamically defined.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object containing the desired property.
+keys            A dot-separated string or array of strings represting the nested property keys.
+dft             Value to return if property is not found. Optional. Defaults to `null`.
+=&gt;              The value or default.
+</code></pre><p>Examples:</p>
+<pre><code>let idx=evt?.node?.data?.optionIdx; // using optional chaining
+let idx=deepRef(evt,&quot;target.node.data.optionIdx&quot;); // clearest and easiest
+let idx=deepRef(evt,[&quot;target&quot;,&quot;node&quot;,&quot;data&quot;,&quot;optionIdx&quot;]); // for a hotspot
+</code></pre>
+<h3 id="function-defaultvalue-val-dfts">defaultValue(val/*,dfts*/)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Return the first defined default for the supplied value if it is null. The first non-null default value is used.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>val             The value to be defaulted.
+...dft          One or more default values to set if the supplied value is `undefined`.
+=&gt;              The value or its default.
+</code></pre>
+<h3 id="function-ensurearray-val">ensureArray(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Ensure the supplied object is an array. If <code>null</code> or <code>undefined</code> an empty array is returned, otherwise if <code>val</code> is not an array it is wrapped in one and returned.</p>
+<h3 id="function-ensureprop-obj-key-dft">ensureProp(obj,key/*,dft*/)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Ensure the supplied object contains the named key. If not, the key is added with the supplied default value. The first default value is used.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object which must contain the desired property.
+key             The property key.
+...dft          One or more default values to use if the supplied value is `undefined`.
+=&gt;              The object arguemnt.
+</code></pre>
+<h3 id="function-findobject-arr-key-cmp">findObject(arr,key,cmp)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Find the first object where <code>cmp(arr[xa],key)===0</code> is returned. If no match is found, <code>undefined</code> is returned.</p><p>If any of the arguments is <code>null</code> or <code>undefined</code>, then <code>undefined</code> is returned.</p>
+<h3 id="function-generateid-len-cpn">generateId(len,cpn)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Generates a cryptographically random ID of arbitrary length and composition.</p><h6 id="arguments-and-return">Arguments and Return</h6>
+<pre><code> len: The number of characters needed. Default: 50.
+ cpn: The composition characters. Default: &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_&quot;.
+ =&gt; The ID string.
+</code></pre><p>The default composition is chosen to be the maximum base which is an exact divisor of 256, eliminating the bias from wrapping the composition character set, and to be URL and cuss safe.</p><p>Other suggested character sets:</p>
+<ul>
+  <li>Hex : &ldquo;0123456789ABCDEF&rdquo;. URL safe, cuss safe.</li>
+  <li>Base 32 : &ldquo;BCDFGHJKLMNPQRSTVWXYZ0123456789_&rdquo;. URL safe, cuss safe.</li>
+  <li>Base 48 : &ldquo;CDFGHJKMNPQRSTVWXYZcdfghjkmnpqrstvwxyz0123456789&rdquo;. URL safe, cuss safe, unabiguous glyphs.</li>
+  <li>Base 50 : &ldquo;CDFGHJKLMNPQRSTVWXYZbcdfghjkmnpqrstvwxyz0123456789&rdquo;. URL safe, cuss safe, unabiguous glyphs, very slight bias for &ldquo;CDFGHJ&rdquo;.</li>
+  <li>Base 64 : &ldquo;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_&rdquo;. URL safe.</li>
+</ul>
+<h3 id="function-isarray-val">isArray(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is an array.</p>
+<h3 id="function-isblank-obj">isBlank(obj)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is &ldquo;blank&rdquo;, including null/undefined. Strings containing only whitespace are considered blank; but they are not considered <a href="#function-isempty">isEmpty</a>.</p>
+<h3 id="function-isboolean-val">isBoolean(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a boolean.</p>
+<h3 id="function-iscontainer-val">isContainer(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a simple container, that is, an array or struct.</p>
+<h3 id="function-isempty-obj">isEmpty(obj)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is &ldquo;empty&rdquo;, including null/undefined.</p><p>Strings containing only whitespace are NOT considered empty; but they are considered <a href="#function-isblank">isBlank</a>.</p>
+<h3 id="function-isfunc-val">isFunc(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a function.</p>
+<h3 id="function-isnumber-val">isNumber(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is an explicit number type (built-in constant or Number).</p>
+<h3 id="function-isobject-val-exctyps">isObject(val,exctyps)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is an object (but not null or an array), excluding the types listed in the second argument.</p>
+<h3 id="function-isstring-val">isString(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a string.</p>
+<h3 id="function-isstruct-val">isStruct(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a dictionary structure (plain JS object, that is, one who&rsquo;s prototype is <code>Object</code> or <code>null</code>).</p>
+<h3 id="function-iswrapper-val">isWrapper(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Returns whether the value is a primitive value wrapper.</p>
+<h3 id="function-isodate-dat">isoDate(dat)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get a date in ISO format; primarily exists to make dependency on <code>moment.js</code> (which is our preferred date formatting library) optional.</p>
+<h3 id="function-merge-tgt-src">merge(tgt,src)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep merge the supplied <strong><em>data structure</em></strong> objects into the specified target object</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>tgt             The object or array to merge into.
+src...          One or more source objects to merge into `tgt`.
+=&gt;              The object passed as `tgt`.
+</code></pre><p>Arguments which are not simple subclasses of <code>Object</code> or arrays are ignored.</p><p>Explicitly <code>undefined</code> values cause the target member to be deleted, otherwise duplicate members in each successive source object overwrite any property of the same name in the target. Objects are always new references if the target does not already have an object of that name. Only objects are merged; that is, a source array, function, <code>null</code>, <code>undefined</code> or primitive value always replaces the same-named value in the target. Arrays are <strong>not merged</strong>, they are replaced, though with a new array not the same reference. Primitive wrappers are treated as simple values.</p><p>This can be used to merge two or more objects into a brand new object like this:</p>
+<pre><code>let newobj=merge({},existing1,existing2);
+</code></pre><p><strong>NOTE:</strong> This should not be used on javascript class objects, but on data structures such as those from deserializing json data. It does not work correctly on subclassed objects.</p><p>See also: <a href="#function-patch">patch</a></p>
+<h3 id="function-mergeshallow-tgt-src">mergeShallow(tgt,src)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Shallow merge the supplied <strong><em>data structure</em></strong> objects or arrays into the specified target.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>tgt             The target object or array to copy members into.
+src             The first of multiple source objects or arrays to copy members from.
+=&gt;              The target object supplied in `tgt`.
+</code></pre><p>This is useful for updating a record from a remote source into a local collection element after fetching an updated record.</p><p>Any keys already in the target object are replaced.</p><p>This should not be used on JavaScript class objects, but on data structures such as those from deserializing JSON data. It does not work correctly on subclassed objects.</p>
+<h3 id="function-noop-retval">noop(retval)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>No-op function. Does nothing except return it&rsquo;s argument. Useful for when a callback or implementation needs to be stubbed.</p>
+<pre><code>retval          The return value for the function. Optional. Defaults to `undefined`.
+=&gt;              `retval`.
+</code></pre>
+<h3 id="function-patch-tgt-src">patch(tgt,src)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep patch the supplied <strong><em>data structure</em></strong> objects into the specified target object</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>tgt             The object or array to patch into.
+src...          One or more objects to patch into `tgt`.
+=&gt;              The target object passed as `tgt`.
+</code></pre><p>Arguments which are not simple subclasses of <code>Object</code> or arrays are ignored.</p><p>Explicitly <code>undefined</code> values cause the target member to be deleted, otherwise duplicate members in each successive source object overwrite any property of the same name in the target. Objects are always new references if the target does not already have an object of that name. Only objects are patchd; that is, a source array, function, <code>null</code>, <code>undefined</code> or primitive value always replaces the same-named value in the target. Arrays are <strong>not patched</strong>, they are replaced, though with a new array not the same reference. Primitive wrappers are treated as simple values.</p><p>This function differs from <a href="#function-merge">merge</a> in the treatment of objects which are missing from the target. In such cases the source object is simply assigned into the target instead of being cloned. This allows object references to be retained for later object equality tests and for retaining references to program models.</p><p>This can be used to patch two or more objects into a brand new object like this:</p>
+<pre><code>let newobj=patch({},existing1,existing2);
+</code></pre><p><strong>NOTE:</strong> This should not be used on javascript class objects, but on data structures such as those from deserializing json data. It does not work correctly on subclassed objects.</p><p>See also: <a href="#function-merge">merge</a></p>
+<h3 id="function-repeat-cnt-fnc-arg">repeat(cnt,fnc/*,arg*/)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Repeatedly invoke the supplied function with the supplied arguments.</p><p>If the <code>cnt</code> is &ldquo;falsy&rdquo;, it is treated as zero and undefined is returned.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>cnt             Repetition count; either a number or a function returning true to repeat, false to stop.
+fnc             The function to call.
+arg...          Any arguments to bind after the current repeat index.
+</code></pre><h6 id="function-arguments">Function Arguments:</h6>
+<pre><code>cnt             Current count.
+arg...          Arguments from the repeat call.
+</code></pre><p>Returns whatever the last invocation returns.</p><p>Throws</p>
+<pre><code>Error           If the first argument was not a function.
+</code></pre>
+<h3 id="function-shuffle-arr-rnd-math-random">shuffle(arr, rnd = Math.random)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Shuffle an array, producing a new array. The input array is not changed.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>arr             Array to shuffle.
+rnd             Function which produces random values such that 0 &lt;= val &lt; 1. Default: `Match.random`.
+=&gt;              A new array with shuffled elements.
+</code></pre>
+<h3 id="function-transform-obj-selfnc-xfmfnc-reffnc">transform(obj,selfnc,xfmfnc,reffnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Deep-transform the supplied <strong><em>data</em></strong> object or array.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object or array to transform.
+selfnc          An optional function to select members to transform.
+xfmfnc          An optional transformer function.
+=&gt;              The transformd object, which is the original `obj` passed in.
+</code></pre><h6 id="selector-transformer-arguments-1">Selector &amp; Transformer Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key.
+val             Object or array value.
+</code></pre><p>Traversal order is depth-first, with key order defined by JavaScript.</p><p>JavaScript class objects are always transformed by reference.</p><p>An optional field selector may be provided and which conditionally selects object properties to be transformed.</p><p>An optional field transformer may be provided which alters property values after they are copied. The transformer is called on objects <em>after</em> they have been recursed and processed.</p><p>Keys and array elements which are <code>undefined</code> are skipped. Unless excluded by the selector Boolean, Number and String objects are converted to their primitive counterparts. They are then passed to the transform function, if supplied.</p>
+<h3 id="function-valstring-val">valString(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get a string representation of a value in a format that makes the type apparent. Primarily used for debugging and dumping.</p>
+<pre><code>val             Value for which type is wanted.
+=&gt;              A string representing the detailed type.
+</code></pre>
+<h3 id="function-valtype-val-dtl">valType(val,dtl)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get the type name of a value in more detail than <code>typeof</code>. Getting the name of the type matching <code>instanceof</code> for objects is optional.</p>
+<pre><code>val             Value for which type is wanted.
+dtl             Boolean flag for the name of the constructor for class-objects.
+=&gt;              A string representing the detailed type.
+</code></pre><p>Returned types:</p>
+<ul>
+  <li><code>array</code></li>
+  <li><code>boolean</code></li>
+  <li><code>function</code></li>
+  <li><code>number</code></li>
+  <li><code>object</code></li>
+  <li><code>string</code></li>
+  <li><code>struct</code> (an object with a constructor of <code>null</code> or <code>Object</code>; i.e. a simple structure)</li>
+  <li><code>null</code></li>
+  <li><code>undefined</code></li>
+  <li><em>name of constructor function</em></li>
+</ul>
+<h3 id="function-visit-obj-fnc">visit(obj,fnc)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Visit each property of the supplied <strong><em>data</em></strong> object or array, calling the supplied function on each one.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>obj             The object or array to transform.
+fnc             A function to call for each member.
+=&gt;              Whether all nodes were visited.
+</code></pre><h6 id="visitor-arguments">Visitor Arguments:</h6>
+<pre><code>pth             Path leading to this member, assembled from &quot;/&quot; by appending keys with &quot;/&quot; separators.
+key             Object key.
+val             Object or array value.
+=&gt;              `false` to stop processing; anything else to continue.
+</code></pre><p>Traversal order is depth-first, with key order defined by JavaScript.</p>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/DomUtil.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../util/NumberUtil.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../template/Translator.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../util/DomUtil.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="utility">Utility</h1><p>The general utility package provides modules which most other JavaScript packages depend on.</p><p>Modules and methods should only be added to this package when their use is moderately ubiquitous. The guidelines for inclusion would be:</p>
+<ul>
+  <li>Used identically in at least three separate projects.</li>
+  <li>Stable API with actual use sufficient to demonstrate its completeness.</li>
+</ul><p><span class="status-stable">Package Status: </span></p><h6 id="modules">Modules</h6>
+<ul>
+  <li><a href="DomUtil.html">Dom Util</a></li>
+  <li><a href="FpUtil.html">Fp Util</a></li>
+  <li><a href="GeneralUtil.html">General Util</a></li>
+  <li><a href="NumberUtil.html">Number Util</a></li>
+  <li><a href="StringUtil.html">String Util</a></li>
+</ul></article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../template/Translator.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../util/DomUtil.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>

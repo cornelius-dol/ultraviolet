@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+    <title>DolHub Software Engineering</title>
+    <meta charset="utf-8">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="../style.css" media="screen,print">
+    <style>
+        body.inside-iframe :is(header, footer) {
+            display: none;
+            }
+    </style>
+</head>
+
+<body class="doc">
+    <script>
+        let body    = document.querySelector("body");
+        if(window.parent !== window) {
+            body.classList.add('inside-iframe');
+            }
+    </script>
+
+    <header>
+        <div class="title"><a href="../index.html">DolHub Software Engineering</a></div>
+        <div class="subtitle">Ultraviolet JavaScript Library</div>
+        <div class="subtext">Version 1.0, Produced 2026-06-16</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/NumberUtil.html'>prev</a></span> <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/1.Overview.html'>next</a></span></div>
+    </header>
+
+    <main id="dgc">
+        <article class="doc">
+<h1 id="stringutil">StringUtil</h1><p>String utility functions.</p><p><span class="status-stable">Module Status: </span></p><h6 id="construction">Construction</h6>
+<pre><code>new StringUtil()
+</code></pre>
+<h3 id="function-compare-one-two">compare(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Compare two strings case-insensitively.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>one             The first (left) value.
+two             The second (right) value.
+=&gt;              Either -1, 0 or 1 as `one` is less than, equal to or greater than `two`.
+</code></pre>
+<h3 id="function-join-septxt-xfmfnc-joival">join(septxt,xfmfnc,joival)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Join the strings of <code>arr</code> after applying a formatting function to each, with <code>sep</code> between the appended values.</p><p>If a value (after any formatting) is <code>undefined</code>, or <code>null</code>, the element is dropped. If the formatter omitted, then a default formatter is used, which will null any blank strings, causing them to be dropped. If the formatter is null, this step is skipped.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>septxt          Separator text to use between elements.
+xfmfnc          Optional function to use to transform each value.
+joival          Array or the first of multiple arguments join.
+=&gt;              Joined result.
+</code></pre><p>Valid Argument Combinations:</p>
+<pre><code>septxt,joival
+septxt,null  ,joival
+septxt,xfmfnc,joival
+</code></pre>
+<h3 id="function-normalizeeg">normalizeEG<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p><span class="status-deprecated"></span> &ndash; Use <a href="#testeg-values"><code>testEG_Values(val)</code></a> instead.</p>
+<h3 id="function-pluralize-nbrval-sngtxt-plutxt-zrotxt-incnbr">pluralize(nbrval,sngtxt,plutxt,zrotxt,incnbr)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Pluralize a string for English for the numeric value <code>nbrval</code>.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>nbrval      Value to transform to a pluralized string.
+sngtxt      Concat string if value is singular.
+plutxt      Concat string if value is plural. Defaults to `sngtxt + &quot;s&quot;`.
+zrotxt      Return string if value is zero. Defaults `&quot;no &quot; + plutxt`.
+incnbr      Whether to include `nbrval`. If false only the `sngtxt`, `plutxt` or `zrotxt` is returned. Defaults to true.
+</code></pre><p>Examples:</p>
+<pre><code>pluralize( 0,&quot;record&quot;); // returns &quot;no records&quot; (even though incnbr=true, because &quot;no&quot; represents 0)
+pluralize( 1,&quot;record&quot;); // returns &quot;1 record&quot;
+pluralize(23,&quot;record&quot;); // returns &quot;23 records&quot;
+pluralize(xx,&quot;one record&quot;,xx+&quot; records&quot;,&quot;no records&quot;,false); // returns &quot;one records&quot;, &quot;xx records&quot; or &quot;no records&quot;
+</code></pre>
+<h3 id="function-test-one-cmp-two">test(one,cmp,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test a relationship between two strings case insensitively.</p><p>Generic comparison supports <code>*xxx*</code>, <code>*xxx</code>, <code>xxx*</code> and <code>xxx</code>, equivalent to <code>CT</code>, <code>EW</code>, <code>SW</code> and <code>EQ</code> respectively. A generic value may be normalized to one of these specific tests for more efficient repeated comparisons using <a href="#normalizeeg-val">normalize EG(val)</a>.</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>one             The first (left) value.
+cmp             Comparator. May be inverted using a leading `!`.
+two             The second (right) value.
+=&gt;              Either -1, 0 or 1 as one is less than, equal to or greater than two.
+</code></pre>
+<div class="table"><table>
+  <thead>
+    <tr>
+      <th>Comparator </th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BL </td>
+      <td>Test <code>one</code> for blank (<code>two</code> is ignored).</td>
+    </tr>
+    <tr>
+      <td>DF </td>
+      <td>Test <code>one</code> for defined (<code>two</code> is ignored);</td>
+    </tr>
+    <tr>
+      <td>ZR </td>
+      <td>Test <code>one</code> for zero (<code>two</code> is ignored);</td>
+    </tr>
+    <tr>
+      <td>&nbsp; </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr>
+      <td>EQ </td>
+      <td>Test for equals.</td>
+    </tr>
+    <tr>
+      <td>GT </td>
+      <td>Test for greater-than.</td>
+    </tr>
+    <tr>
+      <td>GE </td>
+      <td>Test for greater-or-equals.</td>
+    </tr>
+    <tr>
+      <td>LT </td>
+      <td>Test for less-than.</td>
+    </tr>
+    <tr>
+      <td>LE </td>
+      <td>Test for less-or-equals.</td>
+    </tr>
+    <tr>
+      <td>&nbsp; </td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr>
+      <td>CT </td>
+      <td>Test for <code>one</code> contains <code>two</code>;</td>
+    </tr>
+    <tr>
+      <td>EG </td>
+      <td>Test for <code>one</code> equals-generic <code>two</code>;</td>
+    </tr>
+    <tr>
+      <td>EW </td>
+      <td>Test for <code>one</code> ends-with <code>two</code>;</td>
+    </tr>
+    <tr>
+      <td>SW </td>
+      <td>Test for <code>one</code> starts-with <code>two</code>;</td>
+    </tr>
+  </tbody>
+</table></div><p>Throws Error if a compare code is not one of the recognized values.</p>
+<h3 id="function-testbl-one">testBL(one)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> is blank.</p>
+<h3 id="function-testct-one-two">testCT(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> contains <code>two</code>.</p>
+<h3 id="function-testdf-one">testDF(one)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> is defined.</p>
+<h3 id="function-testeg-one-two">testEG(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> equals-generic <code>two</code>.</p>
+<h3 id="function-testeg-values-val">testEG_Values(val)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Get a replacement comparator, function, and value from a generic value as <code>{ compare: &quot;xx&quot;, fnc: testXX, value: &quot;modified-val&quot; }</code> pair. This is valuable when processing a large number of comparisons to avoid repeated doing the same substring operations on <code>val</code>.</p>
+<h3 id="function-testeq-one-two">testEQ(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> equals <code>two</code>.</p>
+<h3 id="function-testew-one-two">testEW(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> ends-with <code>two</code>.</p>
+<h3 id="function-testgt-one-two">testGT(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> greater-than <code>two</code> (and <code>one</code> less-or-equal <code>two</code>).</p>
+<h3 id="function-testlt-one-two">testLT(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> less-than <code>two</code> (and <code>one</code> greater-or-equal <code>two</code>).</p>
+<h3 id="function-testsw-one-two">testSW(one,two)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> starts-with <code>two</code>.</p>
+<h3 id="function-testzr-one">testZR(one)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Test for <code>one</code> is null, undefined, blank or zero.</p>
+<h3 id="function-padl-val-wid-pad">padL(val,wid,pad)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Pad text on the left (align right).</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>val             The value to pad.
+wid             The width of the result. Defaults to 0.
+pad             The character to pad with. Defaults to &quot; &quot;. Only the first character is used.
+=&gt;              The value, as a string, left-padded with `pad`.
+</code></pre>
+<h3 id="function-padr-val-wid-pad">padR(val,wid,pad)<a href="../index.html">index</a><a href="#top">top</a></h3>
+<p>Pad text on the right (align left).</p><p><strong>Arguments &amp; Return:</strong></p>
+<pre><code>val             The value to pad.
+wid             The width of the result. Defaults to 0.
+pad             The character to pad with. Defaults to &quot; &quot;. Only the first character is used.
+=&gt;              The value, as a string, right-padded with `pad`.
+</code></pre>
+</article>
+
+    </main>
+
+    <footer>
+        <div class="subtext">Copyright , All Rights Reserved</div>
+        <div class="page-links"><span title="Previous Page (Arrow Left)"><a class='prev' href='../util/NumberUtil.html'>prev</a></span> | <a href="">top</a> | <a href="../index.html">index</a> | <span title="Next Page (Arrow Right)"><a class='next' href='../vdom/1.Overview.html'>next</a></span></div>
+    </footer>
+
+    <script>
+        setTimeout(() => {
+            document.querySelector("#dgc")?.focus();
+            },100);
+        document.onkeydown = (evt) => {
+            if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey) {
+                switch(evt.key) {
+                    case "ArrowLeft" : {
+                        let elm = document.querySelector("header .page-links .prev");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    case "ArrowRight" : {
+                        let elm = document.querySelector("header .page-links .next");
+                        if(elm) { location.href = elm.href; }
+                        evt.preventDefault();
+                        } break;
+                    }
+                }
+            };
+    </script>
+</body>
+</html>
