@@ -39,7 +39,7 @@
   *                     WebSocket). Defaults to `POSITIVE_INFINITY`.
   *     retryDelay      Number of seconds to delay between connection attempts. Defaults to 3.
   *     --------------  ------------------------------------------------------------------------------------------------
-  *     pending         This function is invoked when the link is pending. If omitted the event is ignored.
+  *     attempt         This function is invoked when the link is attempted. If omitted the event is ignored.
   *     opened          This function is invoked when the link is opened. If omitted the event is ignored.
   *     ready           This function is invoked when the link is ready for sending. If omitted the event is ignored.
   *     closed          This function is invoked when the link is closed. If omitted the event is ignored.
@@ -245,9 +245,9 @@ function fieldRqd(msg,fld,dsc) {
     if(fld==null) { throw new Escape("Message","Data Link: "+dsc+" is required"+(msg!==fld ? "("+JSON.stringify(msg)+")" : "")); }
     }
 
-function linkPending(rmn) {
-    dbglog?.("Data Link pending for '"+config.apiUrl+"': ",rmn);
-    if(!closed && config.pending!=null) { config.pending({ retryLimit: config.retryLimit, retriesRemaining: rmn }); }
+function linkAttempt(rmn) {
+    dbglog?.("Data Link attempt for '"+config.apiUrl+"': ",rmn);
+    if(!closed && config.attempt!=null) { config.attempt({ retryLimit: config.retryLimit, retriesRemaining: rmn }); }
     }
 
 function linkOpened(evt) {
@@ -332,7 +332,7 @@ function wsOpen() {
 
     let dly=(sktRetries>=config.retryLimit ? 0 : config.retryDelay) * 1000;
 
-    linkPending(sktRetries);
+    linkAttempt(sktRetries);
     --sktRetries;                                                                                                       // INFINITY - 1 = INFINITY
     sktTimerId=asyU.defer(dly,() => {
         sktTimerId=0;
