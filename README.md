@@ -69,7 +69,7 @@ the code to do *X*".
 ###### Highlights
 
   - Easy     : The entire API can be mastered in minutes, with explicit, obvious, easily debugged behavior.
-  - Fast     : Approximately 15% slower vs painfully imperative vanilla DOM code.
+  - Fast     : Approximately 7% slower vs painfully imperative vanilla DOM code.
   - Small    : Under 500 LOC excluding documentation & comments; under 6K minimized (Closure); under 4K compressed.
   - Zero-dep : Requires no dependencies, bundling, compilation, or tooling. BYO minimizer or use the provided JS.
 

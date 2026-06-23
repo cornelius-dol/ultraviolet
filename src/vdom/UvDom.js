@@ -8,9 +8,8 @@
 /// A virtual DOM engine which is minimalist, self-contained, and fail-fast for common mistakes.
 ///
 /// Strictly speaking, the only APIs which are necessary to write Ultraviolet applications and components are
-/// {{#define|function-define-tag-atr-chn}}, {{#update|function-update-vew-nod}}, and
-/// {{#island|function-island-vew-tgt}}. For an in-depth understanding of Ultraviolet usage please refer to the
-/// {{@Ultraviolet Programmer Guide|2.Ultraviolet Programmer Guide}}.
+/// {{#define|function-define-tag-atr-chn}} and {{#update|function-update-vew-nod}}. For an in-depth understanding of
+/// Ultraviolet usage please refer to the {{@Ultraviolet Programmer Guide|2.Ultraviolet Programmer Guide}}.
 ///
 /// <span class="status-stable">Module Status: </span>
 ///
@@ -38,26 +37,30 @@
 /// name            | String        | The name of the UI being rendered for errors and debugging.
 /// document        | Object        | The document for which DOM nodes will be created. Defaults to global `document`.
 /// log             | function      | A function to use for logging. Defaults to `console.log` with a bound prefix.
+/// debounce        | Number        | Update debounce time in ms; must be > 0, defaults to 8ms.
 /// printNode       | function      | A function to use for printing a node for logging and debugging.
+///
+/// <span class="since">1.00</span>
 
 function UvDom(cfg)
 { "use strict"; const EXPORTED={}; function exported(v,n){EXPORTED[n]=v;}
 //**********************************************************************************************************************
 
 const   doc         = cfg?.document  ?? document
-,       idn         = Math.floor(Math.random() * 900_000_000) + 100_000_000
+,       idn         = Math.random().toString(36).slice(2,12)
 ,       log         = cfg?.log       ?? console.log.bind(console,"["+(cfg?.name ?? "UVDOM-" + idn)+"]")
 ,       dom         = cfg?.printNode ?? (obj=>obj)
+,       dbn         = cfg?.debounce  ?? 8
 
 //**********************************************************************************************************************
 
 // ALIASES FOR CODE BREVITY
 const   keys        = Object.keys
-,       B           = ""                                                                                                // minimize frequently used literal
-,       F           = false                                                                                             // minimize frequently used literal
-,       N           = null                                                                                              // minimize frequently used literal
-,       T           = true                                                                                              // minimize frequently used literal
-,       U           = undefined                                                                                         // minimize frequently used literal
+,       B           = ""
+,       F           = false
+,       N           = null
+,       T           = true
+,       U           = undefined
 // RENDER ACTIONS / INSIGHT KEYS
 ,       ATC         = "attach"
 ,       CRT         = "create"
@@ -132,6 +135,8 @@ let     dio         = N                                                         
 /// which are represented in HTML by their presence or absence. To explicitly set an attribute to the string values
 /// `"true"` or `"false"`, use those string values, as is required for enumerated attributes such as `aria-checked` or
 /// `draggable`.
+///
+/// <span class="since">1.00</span>
 exported(define,"define");
 function define(tag,atr,chn) {
     if(chn===U && !stc(atr)) { chn = atr; atr =   {}; }                                                                 // allow attributes to be omitted
@@ -141,28 +146,28 @@ function define(tag,atr,chn) {
     type(stc(atr),"atr",atr);                                                                                           // check type of attributes
     chn = (chn===U ? [] : !arr(chn) ? [chn] : chn);                                                                     // coerce children to an array
 
-    let $uv = { nid  : U }                                                                                              // want the nid to consistently show first when debugging
-    ,   tmp = { class: U }                                                                                              // consider all nodes to have a class
+    let $uv = { nid  : "" }                                                                                             // want the nid to consistently show first when debugging
+    ,   tmp = { class: U  }
     ,   idx;
 
     if((idx = tag.indexOf("."))!=-1) { tmp.class = dCls(tag.slice(idx+1)); tag = tag.slice(0,idx); }
     if((idx = tag.indexOf("#"))!=-1) { tmp.id    = tag.slice(idx+1);       tag = tag.slice(0,idx); }
 
     tag ||= "div";
-    atr = dAtr(atr,tmp);
-    chn = dChn(chn,[],$uv);
-    $uv.nid = tag + ":" + (atr.id||B) + "[" + keys(atr).join(",") + "]";                                                // attributes included because rerender will not remove attributes from prior rendering
+    atr = dAtr(atr,tmp,$uv);                                                                                            // including adding atr keys to nid
+    chn = dChn(chn,[] ,$uv);
+    $uv.nid = tag + ":" + (atr.id||B) + ":class" + (atr.id ? ",id" : B) + $uv.nid;
     return { tag, atr, chn, $uv };
     }
 
-function dAtr(src,tgt) {
+function dAtr(src,tgt,$uv) {
     let key, k0, val;
 
     for(key of keys(src)) {
         k0  = key[0];
         val = src[key];
         if(k0==="$") {
-            if(!SPC.has(key.slice(1))) { throw new Error(`Unsupported prop '${key}'`); }
+            if(!SPC.has(key.slice(1))) { throw new Error(`Unsupported attr '${key}'`); }
             tgt[key] = val;
             }
         else if(k0==="o" && key[1]==="n") {
@@ -178,6 +183,7 @@ function dAtr(src,tgt) {
             :          key==="style"      ? dSty(val)
             :                               ""+val;
             }
+        val!==U && ($uv.nid += "," + key);                                                                              // attribute keys included because rerender will not remove attributes from prior rendering
         }
     return tgt;
     }
@@ -230,68 +236,111 @@ function dVal(val,chl) {
 ///
 /// -------|------------|-----------------------------------------------------------------------------------------------
 /// vew    | function   | A virtual-DOM generator function which returns a structure describing some DOM.
-/// nod    | Element    | An existing DOM element to replace. Optional.
+/// nod    | Element    | An existing DOM element to replace — shortcut for `update(vew).mount(nod)`. Optional.
 /// =>     | function   | A view-updater which manages updating a DOM node based on view; called to update the DOM with a view.
 ///
-/// If the optional DOM node is supplied, that node is the mount-point which this view will (momentarily) replace; this
-/// is a convenient way to mount a root view into the DOM. If not, then the view must be mounted into the DOM as a
-/// component of another view, or by using the `mount()` function, above.
+/// If the optional DOM node is supplied, the updater replaces that node on first render. If omitted, the updater
+/// renders into a detached node on first call; use `.mount()` to attach it to the DOM later.
+///
+/// ###### Node Identity
+///
+/// Every DOM node created by Ultraviolet is stamped with the identity of the updater that created it. During
+/// reconciliation, an updater will only reuse nodes bearing its own stamp — preventing cross-updater node theft.
+/// Each updater receives a unique identity at creation time.
+///
+///   - A **root** updater (via `update(vew,nod)` or `.mount()`) replaces a DOM node and renders immediately.
+///   - An **island** updater (via `island(vew,tgt)`) stamps the target object for use as a composable child.
+///   - A **patch** updater (via `.patch()`) adopts the identity of the node it patches.
 ///
 /// The view-updater defers update to the system event queue via setTimeout(). Multiple calls to the view-updater made
 /// between event processing will result in a single update being queued, so hundreds of state updates can individually
-/// request an update in rapid succession without spamming the event queue. This also gates the updates at about 4ms,
-/// and when the tab is not visible, updates may be throttled or paused altogether. The custom render subfunction allows
-/// any queuing mechanism be used. This is by design; Ultraviolet is not intended to drive animations, but rather UIs.
+/// request an update in rapid succession without spamming the event queue. This also debounces the updates at 8ms, and
+/// when the tab is not visible, updates may be throttled or paused altogether. The custom render subfunction allows any
+/// queuing mechanism be used. This throttling is by design; Ultraviolet is intended to drive UIs, not animations.
+///
+/// <span class="since">1.00</span>
 ///
 /// ###### Updater API:
 ///
-/// Updater API functions are properies of the returned updater function.
-///
-/// **mount(nod)**
-///
-/// Mounts or remounts the view immediately. Since 4.00.
-///
-/// --------------------|-----------------------------------------------------------------------------------------------
-/// nod                 | The node to replace, if any; otherwise the view is left dismounted.
-/// =>                  | `undefined`
+/// Updater API functions are properties of the returned updater function.
 ///
 /// **custom(fnc)**
 ///
-/// Triggers a custom update. Since 4.01.
+/// Triggers a custom update.
+///
+/// <span class="since">1.00</span>
 ///
 /// --------------------|-----------------------------------------------------------------------------------------------
 /// fnc                 | The supplied function. If omitted no action is taken.
 /// =>                  | Whether a custom update is pending.
 ///
 /// This allows an application supplied function to invoke the update according to some arbitrary rule. The supplied
-/// function will be immediately invoked with a single argument, being an internal function to render the DOM. The when
+/// function will be immediately invoked with a single argument, being an internal function to render the DOM. When
 /// *that* function is invoked, the DOM will be updated. Usually the supplied function will be `requestAnimationFrame`,
 /// resulting in an expedited update. A simple immediate update can be achieved with `(f)=>f()`. The queued function
 /// will ignore any arguments and return `undefined`.
+///
+/// **mount(nod)**
+///
+/// Mounts the view as a root, replacing the given DOM node and rendering immediately. Can be called again to
+/// retarget the updater to a different node; pass `null` to dismount.
+///
+/// --------------------|-----------------------------------------------------------------------------------------------
+/// nod                 | The DOM node to replace.
+/// =>                  | The updater function.
+///
+/// The shortcut `update(vew, nod)` is equivalent to `update(vew).mount(nod)`.
+///
+/// <span class="since">1.00</span>
+///
+/// **patch(nod)**
+///
+/// Binds the updater as a guest patcher of an existing UV node. The updater adopts the node's identity so that
+/// subsequent renders patch in place without conflicting with the parent's reconciliation. This is directly usable
+/// as a `$create` or `$insert` action handler.
+///
+/// --------------------|-----------------------------------------------------------------------------------------------
+/// nod                 | An existing *UV-rendered* DOM node.
+/// =>                  | The updater function.
+///
+/// A patch updater can only be bound once — the updater must not already have a node.
+///
+/// Usage:
+///
+///     vw("section.status", { $create: updateUI.patch }, [...])
+///
+/// <span class="since">1.00</span>
 exported(update,"update");
 function update(vew,nod) {
-    let csn = idn + "-" + (srl = (srl%MSN) + 1)                                                                         // component serial number
-    ,   crq = F                                                                                                         // custom render queued
-    ,   rip = F                                                                                                         // render is pending
-    ,   $q = (/* ignore args and return undef; so usable as a PGS callback */) => {                                     // queue update.
-            if(!rip) { rip = T; setTimeout($r) }                                                                        // dont use setTimeout return; may return 0
+    let $q  = (/* ignore args and return undef; so usable as a PGS callback */) => {                                    // queue update
+            if(!rip) { rip = T; setTimeout($r,dbn) }
             }
-    ,   $r = (/* ignore args and return undef so usable by setTimeout/requestAnimationFrame/queueMicrotask. */) => {    // expedited rendering
+    ,   $r  = (/* ignore args and return undef so usable by setTimeout/requestAnimationFrame/queueMicrotask. */) => {   // expedited rendering
             $s(nod?.parentNode);
             }
-    ,   $s = (p) => {                                                                                                   // subview function for normal rendering
-            if(!nod || rip) { nod = rNod(cbkV(vew),p,nod,csn) }
+    ,   $s  = (p) => {                                                                                                  // subview function for normal rendering
+            if(!nod || rip) { nod = rNod(cbkV(vew),p,nod,rdi) }
             crq = rip = F;
             return nod;                                                                                                 // never NULL!
-            };
+            }
+    ,   rdi = idn + "-" + (srl = (srl%MSN) + 1)                                                                         // unique identity for isolation
+    ,   crq = F                                                                                                         // custom render queued
+    ,   rip = F;                                                                                                        // render is pending
 
-    $q.mount = (t) => {
-        if(t!==nod) {
+    $q.mount = (n) => {
+        if(n!==nod) {
             rAcn(RMV,nod,nod?.parentNode);
             nod?.remove();                                                                                              // remove existing view node from DOM
-            nod = t;
+            nod = n;
+            nod && (rip = T, $r());                                                                                     // render onto tgt immediately
             }
-        rip = T; $r();                                                                                                  // render onto tgt immediately
+        return $q;
+        };
+    $q.patch = (n) => {                                                                                                 // make this a patcher; directly usable as action handler
+        if(nod)          { throw Error("Already patching")  }
+        if(!n?.$uv?.rdi) { throw Error("Requires UV node"); }
+        nod = n;
+        rdi = n.$uv.rdi;                                                                                                // adopt host's identity
         return $q;
         };
     $q.custom = (q) => {
@@ -302,66 +351,58 @@ function update(vew,nod) {
     return $q;
     }
 
-/// Create an asynchronous, coalescing, view-update function, given a view generator function, and add it to the target
-/// object. This makes the target a rendering "island" which can be directly provided to another view. This is usually
-/// done by the target object itself to make it usable as an isolated component.
+/// Create an asynchronous, coalescing, view-update function which makes the target object a composable island. Once
+/// called, the target object can be directly provided as a child to any view and will be rendered as an isolated
+/// component. This is the primary way to create reusable, self-managing view components.
 ///
-/// Islands manage their own rendering independently of the parent that includes them. They should depend entirely and
-/// only on their internal state. External state should be explicitly injected into an island whenever it changes. Care
-/// should be taken that the view of an island does not incorporate state which it is not managing (and for which,
-/// therefore, it is unaware of changes).
+/// Islands manage their own rendering independently of the parent that includes them. The parent cannot descend into
+/// an island's subtree, and re-rendering the parent leaves the island's content untouched.
 ///
 /// **Arguments & Return:**
 ///
 /// -------|------------|-----------------------------------------------------------------------------------------------
 /// vew    | function   | A virtual-DOM generator function which returns a structure describing some DOM.
-/// tgt    | object     | The target object which is to become an island (usually the exports of the module calling this function).
-/// =>     | function   | A view-updater which manages updating the DOM for this component.
+/// tgt    | object     | The target object to stamp (usually the component's EXPORTED object).
+/// =>     | function   | A view-updater; refer to {{#update|function-update-vew-nod}}.
 ///
-/// Refer also to {{#update|function-update-vew-nod}}.
-///
-/// Since: 4.00
+/// <span class="since">1.00</span>
 exported(island,"island");
-function island(vew,tgt) {
-    return (tgt.$dom = update(vew));
-    }
+function island(vew,tgt) { return (tgt.$dom = update(vew)); }
 
 //**********************************************************************************************************************
 // RENDER
 //**********************************************************************************************************************
 
-/// Render a vDOM structure produced by calls to {{#define() | function-define-tag-atr-chn}} into DOM nodes.
+/// Materialize a vDOM structure into a DOM node tree. Returns the root node directly.
 ///
-/// This API is rarely, if ever, needed by an application, though it may be useful in debugging and testing. Most apps
-/// will, instead, simply use an updater function produced by {{#update|function-update-vew-nod}} or
-/// {{#island|function-island-vew-tgt}}.
+/// This is a low-level diagnostic function. Most applications should use {{#update|function-update-vew-nod}} which
+/// provides lifecycle management, coalesced rendering, and composable islands. This function is useful for:
+///
+///   - Unit testing view functions without updater ceremony.
+///   - Inspecting the DOM output of a vDOM structure during debugging.
+///   - Generating detached DOM fragments for use outside the Ultraviolet lifecycle.
+///
+/// When a target node is provided, reconciliation occurs identically to an updater render — this can be used to
+/// verify reconciliation behavior in tests.
 ///
 /// **Arguments & Return:**
 ///
 /// --------|-----------|-----------------------------------------------------------------------------------------------
 /// vew     | object    | A virtual-dom structure describing some DOM.
 ///  "      | function  | A virtual-dom producer which returns a structure describing some DOM.
-/// nod     | Element   | An existing DOM element to update. Optional.
+/// nod     | Element   | An existing DOM element to reconcile against. Optional.
 /// =>      | Element   | A DOM node tree.
 ///
-/// If the target node is omitted, a new DOM structure is returned. If the a node is provided, it is updated as
-/// minimally as possible to represent the same structure described by the vDOM. If the node is already present in the
-/// browser's DOM it is replaced in the parent.
-///
-/// No magical changes happen to the DOM after rendering; in order to update the DOM tree, it must be rendered again by
-/// calling this function with an updated description. The {{#update|function-update-vew-nod}} and
-/// {{#island|function-island-vew-tgt}} functions provide ready-made implementations for doing this with a single call,
-/// allowing vDOM updates to be easily wired into state changes (for example, as the change callback of a PGS
-/// state-value function).
+/// <span class="since">1.00</span>
 exported(render,"render");
 function render(vew,nod) {
-    return rNod(cbkV(vew),nod?.parentNode,nod);
+    return rNod(cbkV(vew),nod?.parentNode,nod,nod?.$uv?.rdi ?? idn);
     }
 
-function rNod(vdm,par,ond,csn,dbg) {
+function rNod(vdm,par,ond,rdi,dbg) {
     let $uv = vdm?.$uv
-    ,   smc = ond?.$uv?.csn===csn                                                                                       // ensure same component
-    ,   nod = smc ? ond : U                                                                                             // must not reuse nod from another component!!
+    ,   sid = ond?.$uv?.rdi===rdi                                                                                       // same id?
+    ,   nod = sid ? ond : U                                                                                             // must not reuse nod from another renderer!!
     ,   opa = ond?.parentNode
     ,   cpt, isg, nsp;
 
@@ -375,7 +416,7 @@ function rNod(vdm,par,ond,csn,dbg) {
 
         if(vdm==N) {                                                                                                    // comment placeholder (catches undefined as well, from component root)
             if(nod?.nodeType!==doc.COMMENT_NODE) {
-                nod = cNode(csn,B);
+                nod = cNode(rdi,B);
                 }
             }
         else if(cpt = fnc(vdm)) {                                                                                       // component (assignment intentional)
@@ -385,18 +426,18 @@ function rNod(vdm,par,ond,csn,dbg) {
         else if($uv) {                                                                                                  // element vdom
             // NB: Cannot assign nod.$uv yet because `nod` might be the same as `ond`, and we need the old $uv for
             // removing event handlers.
-            $uv = { ...$uv, csn };                                                                                      // always copy $uv structure for the DOM node
+            $uv = { ...$uv, rdi };                                                                                      // always copy $uv structure for the DOM node
             (nsp = vdm.atr.xmlns)===U && (nsp = par && par.namespaceURI!==U ? par.namespaceURI : HTM);                  // default to HTML5 namespace
-            if(!nod || nod.namespaceURI!==nsp || nod.$uv?.nid!==$uv.nid || nod.$uv?.csn!==csn) {
-                nod = eNode(csn,nsp,vdm.tag);                                                                           // create replacement element
+            if(!nod || nod.namespaceURI!==nsp || nod.$uv?.nid!==$uv.nid || nod.$uv?.rdi!==rdi) {
+                nod = eNode(rdi,nsp,vdm.tag);                                                                           // create replacement element
                 }
-            rAtr(nod,smc ? ond : U,vdm.atr,$uv,dbg);
-            rChn(nod,smc ? ond : U,vdm.chn,csn,dbg);
+            rAtr(nod,sid ? ond : U,vdm.atr,$uv,dbg);
+            rChn(nod,sid ? ond : U,vdm.chn,rdi,dbg);
             nod.$uv = $uv;                                                                                              // must assign nod.$uv after rAtr which needs the old $uv
             nod!==ond && rAcn(CRT,nod,par,dbg,T);                                                                       // create action (only for elements, the only nodes than can have handlers)
             }
         else if(nod?.nodeType!==doc.TEXT_NODE) {                                                                        // new text node
-            nod = tNode(csn,vdm);
+            nod = tNode(rdi,vdm);
             }
         else if(nod.data!==vdm) {                                                                                       // existing text node
             nod.data = vdm;                                                                                             // NB: do not confuse the text node data with $uv.data from $data
@@ -422,7 +463,7 @@ function rNod(vdm,par,ond,csn,dbg) {
                 }
             else if(nod!==ond) {                                                                                        // same parent, new child; updated in place
                 if(nod.parentNode===par) {                                                                              // already a (later) child of this parent
-                    let cmt = cNode(csn,B);
+                    let cmt = cNode(rdi,B);
                     rAcn(RMV,nod,par,dbg);
                     par.replaceChild(cmt,nod);                                                                          // replace with comment to maintain DOM structure
                     rAcn(INS,cmt,par,dbg);
@@ -461,8 +502,8 @@ function rAcn(acn,nod,par,dbg,frc) {
                 note("hnd",acn);
                 cbkH(hdl,nod,par);
                 }
-            if(!frc || acn===INS || acn===RMV) for(let chl = next(nod.firstChild); chl; chl = next(chl.nextSibling)) {  // recursively invoke $insert/$remove on children
-                rAcn(acn,chl,nod,dbg,T);
+            if(!frc || acn===INS || acn===RMV) for(let chl = nod.firstChild; chl; chl = chl.nextSibling) {              // recursively invoke $insert/$remove on children
+                if(chl.$uv) { rAcn(acn,chl,nod,dbg,T); }
                 }
             }
         }
@@ -545,19 +586,21 @@ function rAtr(nod,ond,atr,$uv,dbg) {
     $uv.onx && ($uv.event = cbkE);                                                                                      // event function needed for removing event listeners
     }
 
-function rChn(par,opa,chn,csn,dbg) {
-    let ond = next(opa?.firstChild)                                                                                     // first UV child
+function rChn(par,opa,chn,rdi,dbg) {
+    let ond = opa?.firstChild ?? N
     ,   nxt;
+
+    if(!chn.length && ond?.$uv?.rdi!==rdi) { return; }                                                                 // foreign-owned container; skip reconciliation
 
     for(let vdm of chn) {
         logD(dbg,"CHL",vdm,"DOM:",dom(ond));
-        par!==opa && (nxt = next(ond?.nextSibling));                                                                    // must get next UV child before making dom changes
-        let nod = rNod(vdm,par,ond,csn,dbg);
-        ond     = !nxt ? next(nod?.nextSibling) : nxt;                                                                  // for same parent nod is always prior to the desired next node to update
+        par!==opa && (nxt = ond?.nextSibling ?? N);                                                                     // must get next child before making dom changes
+        let nod = rNod(vdm,par,ond,rdi,dbg);
+        ond     = !nxt ? (nod?.nextSibling ?? N) : nxt;                                                                 // for same parent nod is always prior to the desired next node to update
         }
 
     while(ond) {
-        nxt = next(ond.nextSibling);                                                                                    // must get next UV child  before any dom changes
+        nxt = ond.nextSibling ?? N;                                                                                     // must get next child before any dom changes
         rAcn(RMV,ond,opa,dbg);                                                                                          // must be before disconnecting from dom
         opa.removeChild(ond);
         ond = nxt;
@@ -578,6 +621,8 @@ function rChn(par,opa,chn,csn,dbg) {
 ///
 /// This allows the arbitrary data which was attached to a node when the view was defined to be extracted from the
 /// element without exposing Ultraviolet internals which are subject to change in future versions.
+///
+/// <span class="since">1.00</span>
 exported(dataOf,"dataOf");
 function dataOf(obj,anc) {
     // OK to ignore the possibility of a node loop since these will always be DOM or vDOM nodes.
@@ -598,6 +643,8 @@ function dataOf(obj,anc) {
 /// Debugging insights track how many times specific operations are invoked. They can be used during development to
 /// detect aberrant vDOM definitions that result in unstable DOM or excessive DOM manipulations. An insight collector is
 /// automatically installed and reported to the console by any elements which have their debug flag set.
+///
+/// <span class="since">1.00</span>
 exported(insights,"insights");
 function insights(val) {
     if(val!==U) {
@@ -649,17 +696,12 @@ function logE(err,whr,dtl) {
     log(whr,"error =>",err,dtl);
     }
 
-function next(nod) {
-    while(nod && !nod.$uv) { nod = nod.nextSibling; }                                                                   // skip foreign nodes
-    return nod ?? N;                                                                                                    // must be specifically NULL for correct dom insertion behavior
-    }
-
 function node(typ) {
     let c = doc[CRT+typ].bind(doc);
     typ = typ.replace(/(NS|Node)$/,B).toLowerCase();                                                                    // for insights
-    return (csn,...a) => {
+    return (rdi,...a) => {
         let nod = c(...a);
-        nod.$uv = { csn };                                                                                              // always mark our nodes with component serial number
+        nod.$uv = { rdi };                                                                                              // always mark our nodes with DOM identity
         note("nod",typ);
         return nod;
         }

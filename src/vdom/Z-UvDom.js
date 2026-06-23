@@ -116,7 +116,7 @@ test.batch("Views are described with the 'describe()' function.",{
         "... or a single `false`"                           : () => { test.objEQ([false]                                , vw("div",{},VAL_FALSE).chn); },
         "... or a single `null`"                            : () => { test.objEQ([null]                                 , vw("div",{},null).chn); },
         "... or objects with a `valueOf` function"          : () => { test.objEQ([false]                                , vw("div",{},[new Boolean(false)]).chn); },
-        "... or components with a `$dom` function"          : () => { test.objEQ([ANYFNC]                               , vw("div",{},cptStatic()).chn); },
+        "... or components created via island()"            : () => { test.objEQ([ANYFNC]                               , vw("div",{},cptStatic()).chn); },
         "... or another view descriptor (of course)"        : () => { test.objEQ([dscObject("div",["x"])]               , vw("div",{},[vw("",["x"])]).chn); },
         "But not arbitrary objects"                         : () => { test.fails("TypeError"                            , vw,"div",{},{}); },
         },
@@ -128,7 +128,7 @@ test.batch("Views are described with the 'describe()' function.",{
         "... or a single `false`"                           : () => { test.objEQ([false]                                , vw("div",VAL_FALSE).chn); },
         "... or a single `null`"                            : () => { test.objEQ([null]                                 , vw("div",null).chn); },
         "... or objects with a `valueOf` function"          : () => { test.objEQ([false]                                , vw("div",[new Boolean(VAL_FALSE)]).chn); },
-        "... or components with a `$dom` function"          : () => { test.objEQ([ANYFNC]                               , vw("div",cptStatic()).chn); },
+        "... or components created via island()"            : () => { test.objEQ([ANYFNC]                               , vw("div",cptStatic()).chn); },
         "... or another view descriptor (of course)"        : () => { test.objEQ([dscObject("div",["x"])]               , vw("div",[vw("",["x"])]).chn); },
         },
     "Nested child arrays will be rendered as if flattened"  : () => { test.objEQ( dscObject("div",[
@@ -143,7 +143,7 @@ test.batch("Views are described with the 'describe()' function.",{
 
         test.objEQ(dfn                                                                                                  , vew,"Check definition");
         test.valEQ(dom                                                                                                  , toHtml(vwRender(vew)),"Check DOM");
-        test.valEQ("div:an-id[class,id]"                                                                                , vew.$uv.nid,"Validate node-ID");
+        test.valEQ("div:an-id:class,id"                                                                                 , vew.$uv.nid,"Validate node-ID");
         },
     });
 
@@ -155,7 +155,7 @@ test.batch("Boolean, null and undefined values are allowed and have special, pra
 
         test.objEQ(dfn                                                                                                  , vew,"Check definition");
         test.valEQ(dom                                                                                                  , toHtml(vwRender(vew)),"Check DOM");
-        test.valEQ("div:[class]"                                                                                       , vew.$uv.nid,"Validate node-ID");
+        test.valEQ("div::class"                                                                                        , vew.$uv.nid,"Validate node-ID");
         },
     "Null attributes are considered to be defined, but are not rendered": () => {
         let vew = vw("div",{ atr: null })
@@ -164,7 +164,7 @@ test.batch("Boolean, null and undefined values are allowed and have special, pra
 
         test.objEQ(dfn                                                                                                  , vew,"Check definition");
         test.valEQ(dom                                                                                                  , toHtml(vwRender(vew)),"Check DOM");
-        test.valEQ("div:[class,atr]"                                                                                    , vew.$uv.nid,"Validate node-ID");
+        test.valEQ("div::class,atr"                                                                                    , vew.$uv.nid,"Validate node-ID");
         },
     "Null attributes will, however, clear corresponding DOM attributes": () => {
         let vew1 = vw("div.inhibited")
@@ -186,7 +186,7 @@ test.batch("Boolean, null and undefined values are allowed and have special, pra
 
         test.objEQ(dfn                                                                                                  , vew,"Check definition");
         test.valEQ(dom                                                                                                  , toHtml(vwRender(vew)),"Check DOM");
-        test.valEQ("div:[class]"                                                                                        , vew.$uv.nid,"Validate node-ID");
+        test.valEQ("div::class"                                                                                        , vew.$uv.nid,"Validate node-ID");
         },
     "Undefined attributes are neither defined, nor rendered": () => {
         let vew = vw("div",{ atr: undefined })
@@ -195,7 +195,7 @@ test.batch("Boolean, null and undefined values are allowed and have special, pra
 
         test.objEQ(dfn                                                                                                  , vew,"Check definition");
         test.valEQ(htm                                                                                                  , toHtml(vwRender(vew)),"Check DOM");
-        test.valEQ("div:[class]"                                                                                        , vew.$uv.nid,"Validate node-ID");
+        test.valEQ("div::class"                                                                                        , vew.$uv.nid,"Validate node-ID");
         },
     "Boolean attribute values are defined as either blank/null and rendered/omitted, respectively.": () => {
         let vew = vw("div",{ trueAtr: true, falseAtr: false })
@@ -204,7 +204,7 @@ test.batch("Boolean, null and undefined values are allowed and have special, pra
 
         test.objEQ(dfn                                                                                                  , vew,"View Check");
         test.valEQ(htm                                                                                                  , toHtml(vwRender(vew)),"DOM Check");
-        test.valEQ("div:[class,trueAtr,falseAtr]"                                                                       , vew.$uv.nid,"Node-ID Check");
+        test.valEQ("div::class,trueAtr,falseAtr"                                                                       , vew.$uv.nid,"Node-ID Check");
         },
     });
 
@@ -250,8 +250,8 @@ test.batch("Views are rendered into DOM trees with the `vwRender()` function.",{
         },
     });
 
-test.batch("A component is an object having a `$dom` property which is a UvDom.update() function`.",{
-    "A simple component is a UV module which exports its updater as '$dom'.": () => {
+test.batch("A component is an object created via island() which manages its own DOM subtree.",{
+    "A simple component created via island() renders its view as a child.": () => {
         let cpt = cptStatic("Text")
         ,   vew = vw("div",cpt);
         test.objEQ(dscObject("div",[cpt.$dom.$s])                                                                       , vew                  , "View incorrect");
@@ -539,16 +539,16 @@ test.batch("A number of special attributes, prefixed with `$` are supported.",{
         ,   nod = vwRender(vew);
 
         // TEST RENDERED NODE
-        test.objEQ(dta                                                                                                  ,vwDataOf(vew), "Data in vDOM");
-        test.objEQ(dta                                                                                                  ,vwDataOf(nod), "Data in DOM");
+        test.objEQ(dta                                                                                                  , vwDataOf(vew), "Data in vDOM");
+        test.objEQ(dta                                                                                                  , vwDataOf(nod), "Data in DOM");
 
         dta = { a: "ONE", b: "TWO" }
         vew = vw("div",{ $data: dta },"Test")
         nod = vwRender(vew,nod);
 
         // TEST UPDATED NODE
-        test.objEQ(dta                                                                                                  ,vwDataOf(vew), "Data in vDOM");
-        test.objEQ(dta                                                                                                  ,vwDataOf(nod), "Data in DOM");
+        test.objEQ(dta                                                                                                  , vwDataOf(vew), "Data in vDOM");
+        test.objEQ(dta                                                                                                  , vwDataOf(nod), "Data in DOM");
         },
     "Specifying $debug enables rendering debugging.": () => {
         test.valEQ(VAL_TRUE                                                                                             , vw("div",{ $debug: true },"Test").atr.$debug);
@@ -612,7 +612,54 @@ test.batch("A number of special attributes, prefixed with `$` are supported.",{
         },
     });
 
-test.batch("Views can render non-HTML nodes, such as SVG using xmlns namespace attributes",{
+test.batch("Foreign nodes in a container element are preserved when the container has no vDOM children.",{
+    "A container with foreign children is not reconciled.": () => {
+        function insert(nod) { nod.appendChild(document.createElement("span")); }
+
+        let vew = vw("div", [
+            vw("section.container", { $insert: insert }),
+            ])
+        ,   nod;
+
+        nod = vwRender(vew,mountReset());
+        test.valEQ("<div><section class='container'><span/></section></div>"                                            , toHtml(nod),"Foreign child present after first render");
+        nod = vwRender(vew,mountPoint());
+        test.valEQ("<div><section class='container'><span/></section></div>"                                            , toHtml(nod),"Foreign child preserved after re-render");
+        },
+    "A container with foreign UV children (different renderer) is not reconciled.": () => {
+        let other   = new UvDom({ name: "Other", document })
+        ,   foreign = other.render(other.define("p","Foreign content"));
+
+        function insert(nod) { nod.appendChild(foreign); }
+
+        let vew = vw("div", [
+            vw("section.container", { $insert: insert }),
+            ])
+        ,   nod;
+
+        nod = vwRender(vew,mountReset());
+        test.valEQ("<div><section class='container'><p>Foreign content</p></section></div>"                             , toHtml(nod),"Foreign UV child present after first render");
+        nod = vwRender(vew,mountPoint());
+        test.valEQ("<div><section class='container'><p>Foreign content</p></section></div>"                             , toHtml(nod),"Foreign UV child preserved after re-render");
+        },
+    "A container whose children are removed by application code is left empty.": () => {
+        function insert(nod) { nod.appendChild(document.createElement("span")); }
+        function remove(nod) { while(nod.firstChild) { nod.removeChild(nod.firstChild); } }
+
+        let vew = vw("div", [
+            vw("section.container", { $insert: insert, $remove: remove }),
+            vw("p","After"),
+            ])
+        ,   nod;
+
+        nod = vwRender(vew,mountReset());
+        test.valEQ("<div><section class='container'><span/></section><p>After</p></div>"                                , toHtml(nod),"Initial state");
+        nod = vwRender(vw("div",[ vw("div","Replaced") ]),mountPoint());
+        test.valEQ("<div><div>Replaced</div></div>"                                                                     , toHtml(nod),"Container removed, $remove fired");
+        },
+    });
+
+test.batch("Views can render non-HTML nodes, such as SVG, using xmlns namespace attributes",{
     "Rendering an SVG element propagates its namespace to descendants.": () => {
         let vew = vw("svg", { xmlns: NS_SVG }, [
             vw("circle",{ cx: 50, cy: 50, r: 40 })
@@ -620,8 +667,8 @@ test.batch("Views can render non-HTML nodes, such as SVG using xmlns namespace a
         ,   dom = vwRender(vew)
         ,   cir = dom.querySelector("circle");
 
-        test.valEQ(NS_SVG                                                                                              , dom.namespaceURI          , "SVG root namespace");
-        test.valEQ(NS_SVG                                                                                              , cir.namespaceURI          , "SVG child namespace");
+        test.valEQ(NS_SVG                                                                                               , dom.namespaceURI          , "SVG root namespace");
+        test.valEQ(NS_SVG                                                                                               , cir.namespaceURI          , "SVG child namespace");
         test.valEQ(`<svg xmlns='${NS_SVG}'><circle cx='50' cy='50' r='40'/></svg>`                                      , toHtml(dom));
         },
     "Replacing an element with the same tag in a different namespace.": () => {
@@ -659,12 +706,161 @@ test.batch("Views can render non-HTML nodes, such as SVG using xmlns namespace a
         ,   box = dom.querySelector("foreignObject")
         ,   div = dom.querySelector("foreignObject > div");
 
-        test.valEQ(NS_SVG                                                                                              , dom.namespaceURI, "SVG root namespace");
-        test.valEQ(NS_SVG                                                                                              , box.namespaceURI, "foreignObject namespace matches parent");
-        test.valEQ(NS_HTM                                                                                              , div.namespaceURI, "Embedded HTML namespace");
+        test.valEQ(NS_SVG                                                                                               , dom.namespaceURI, "SVG root namespace");
+        test.valEQ(NS_SVG                                                                                               , box.namespaceURI, "foreignObject namespace matches parent");
+        test.valEQ(NS_HTM                                                                                               , div.namespaceURI, "Embedded HTML namespace");
         test.valEQ(`<svg xmlns='${NS_SVG}'><foreignobject width='10' height='10'><div xmlns='${NS_HTM}'><p>HTML content</p></div></foreignobject></svg>`
                                                                                                                         , toHtml(dom));
         }
+    });
+
+test.batch("Subview updaters can be re-rendered independently without becoming islands.",{
+    "render() can patch a node previously created by update().": () => {
+        let txt = "Original"
+        ,   def = () => vw("div.sub", [txt])
+        ,   upd = vwUpdate(def)
+        ,   nod;
+        upd.mount(mountReset());
+        nod = mountPoint();
+        test.valEQ("<div class='sub'>Original</div>"                                                                    , toHtml(nod), "Initial render");
+        txt = "Updated";
+        insights({});
+        nod = vwRender(def, nod);
+        test.valEQ("<div class='sub'>Updated</div>"                                                                     , toHtml(mountPoint()), "After render()");
+        test.objEQ({atr:{}, dom:{insert:0,remove:0,render:2}, evt:{}, hnd:{}, nod:{}}                                   , nrmInsights(), "No node recreation");
+        },
+    "render() adopts the node's own identity for reconciliation.": () => {
+        let other = new UvDom({ name: "Other", document })
+        ,   def   = () => vw("div.target", ["Content"])
+        ,   nod, nod2;
+
+        // Create a node via one renderer
+        nod = other.render(other.define("div.target", ["Content"]));
+
+        // render() with our renderer adopts the node's identity and reuses it
+        insights({});
+        nod2 = vwRender(def, nod);
+        test.valEQ(nod                                                                                                  , nod2, "render() reuses node regardless of origin");
+        test.objEQ({atr:{}, dom:{insert:0,remove:0,render:2}, evt:{}, hnd:{}, nod:{}}                                   , nrmInsights(), "No node recreation");
+        },
+    "A subview can be independently re-rendered via render() while mounted.": () => {
+        let subtxt  = "Sub"
+        ,   partxt  = "Par"
+        ,   defSub  = () => vw("section.child", [subtxt])
+        ,   defPar  = () => vw("main.parent", [partxt, defSub()])
+        ,   parUpd  = vwUpdate(defPar)
+        ,   nod, sub;
+        parUpd.mount(mountReset());
+        nod = mountPoint();
+        sub = nod.querySelector("section");
+        subtxt = "Sub2";
+        insights({});
+        vwRender(defSub, sub);
+        test.valEQ("<main class='parent'>Par<section class='child'>Sub2</section></main>"                               , toHtml(nod), "Subview updated");
+        test.valEQ(sub                                                                                                  , nod.querySelector("section"), "Same section node");
+        test.objEQ({atr:{}, dom:{insert:0,remove:0,render:2}, evt:{}, hnd:{}, nod:{}}                                   , nrmInsights(), "No node recreation");
+        },
+    "A parent re-renders through a subview without destroying it.": () => {
+        let subtxt  = "Sub"
+        ,   partxt  = "Par"
+        ,   defSub  = () => vw("section.child", [subtxt])
+        ,   defPar  = () => vw("main.parent", [partxt, defSub()])
+        ,   parUpd  = vwUpdate(defPar)
+        ,   nod, sub;
+        parUpd.mount(mountReset());
+        nod = mountPoint();
+        sub = nod.querySelector("section");
+        partxt = "Par2";
+        insights({});
+        nod = vwRender(defPar, nod);
+        test.valEQ("<main class='parent'>Par2<section class='child'>Sub</section></main>"                               , toHtml(nod), "Parent re-rendered");
+        test.valEQ(sub                                                                                                  , nod.querySelector("section"), "Same section node");
+        test.objEQ({atr:{}, dom:{insert:0,remove:0,render:4}, evt:{}, hnd:{}, nod:{}}                                   , nrmInsights(), "No node recreation");
+        },
+    "Island DOM nodes are protected from positional reuse during child reconciliation.": {
+        "Removing a preceding island does not steal the next island's node.": () => {
+            let CPT_A   = {}
+            ,   CPT_B   = {}
+            ,   atxt    = "A"
+            ,   btxt    = "B";
+
+            vwIsland(() => vw("section.cpt", [atxt]), CPT_A);
+            vwIsland(() => vw("section.cpt", [btxt]), CPT_B);
+
+            let defPar1 = () => vw("main", [CPT_A, CPT_B])
+            ,   defPar2 = () => vw("main", [CPT_B])
+            ,   parUpd  = vwUpdate(defPar1)
+            ,   nod, nodB;
+            parUpd.mount(mountReset());
+            nod  = mountPoint();
+            nodB = nod.querySelectorAll("section")[1];
+            test.valEQ("<main><section class='cpt'>A</section><section class='cpt'>B</section></main>"                  , toHtml(nod), "Initial");
+            nod = vwRender(defPar2, nod);
+            test.valEQ("<main><section class='cpt'>B</section></main>"                                                  , toHtml(nod), "After removing A");
+            test.valEQ(nodB                                                                                             , nod.querySelector("section"), "B kept its own node");
+            },
+        "Reordering islands preserves each island's own DOM node.": () => {
+            let CPT_A   = {}
+            ,   CPT_B   = {}
+            ,   atxt    = "A"
+            ,   btxt    = "B";
+
+            vwIsland(() => vw("section.cpt", [atxt]), CPT_A);
+            vwIsland(() => vw("section.cpt", [btxt]), CPT_B);
+
+            let defPar1 = () => vw("main", [CPT_A, CPT_B])
+            ,   defPar2 = () => vw("main", [CPT_B, CPT_A])
+            ,   parUpd  = vwUpdate(defPar1)
+            ,   nod, nodA, nodB;
+            parUpd.mount(mountReset());
+            nod  = mountPoint();
+            nodA = nod.querySelectorAll("section")[0];
+            nodB = nod.querySelectorAll("section")[1];
+            test.valEQ("<main><section class='cpt'>A</section><section class='cpt'>B</section></main>"                  , toHtml(nod), "Initial");
+            nod = vwRender(defPar2, nod);
+            test.valEQ("<main><section class='cpt'>B</section><section class='cpt'>A</section></main>"                  , toHtml(nod), "After reorder");
+            test.valEQ(nodB                                                                                             , nod.querySelectorAll("section")[0], "B kept its node");
+            test.valEQ(nodA                                                                                             , nod.querySelectorAll("section")[1], "A kept its node");
+            },
+        },
+    "An island remains isolated — parent cannot descend into its subtree.": () => {
+        let ISLAND  = {}
+        ,   partxt  = "Parent"
+        ,   islcnt  = 0
+        ,   islupd  = vwIsland(() => vw("section.island", ["Island",++islcnt]), ISLAND);
+
+        let dfnpar  = () => vw("main.parent", [partxt, ISLAND])
+        ,   parupd  = vwUpdate(dfnpar)
+        ,   nod, isl;
+
+        parupd.mount(mountReset());
+        nod = mountPoint();
+        isl = nod.querySelector("section");
+        test.valEQ("<main class='parent'>Parent<section class='island'>Island1</section></main>"                        , toHtml(nod), "Initial");
+
+        // Parent re-renders; island content unchanged; then island updated separately
+        partxt = "Parent2";
+        nod = vwRender(dfnpar,nod);
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island1</section></main>"                       , toHtml(nod), "Parent re-rendered, island intact 1");
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island1</section></main>"                       , toHtml(nod), "Parent re-rendered, island intact 2");
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island1</section></main>"                       , toHtml(nod), "Parent re-rendered, island intact 3");
+        islupd.custom((f)=>f());
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island2</section></main>"                       , toHtml(nod), "Island re-rendered 1");
+        islupd.custom((f)=>f());
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island3</section></main>"                       , toHtml(nod), "Island re-rendered 2");
+        islupd.custom((f)=>f());
+        test.valEQ("<main class='parent'>Parent2<section class='island'>Island4</section></main>"                       , toHtml(nod), "Island re-rendered 3");
+        },
+    "patch() throws if updater already has a node.": () => {
+        let upd = vwUpdate(() => vw("div"));
+        upd.mount(mountReset());
+        test.fails("Error"                                                                                              , () => upd.patch(mountPoint()));
+        },
+    "patch() throws if target is not a UV-rendered node.": () => {
+        let upd = vwUpdate(() => vw("div"))
+        ,   nod = document.createElement("div");
+        test.fails("Error"                                                                                              , () => upd.patch(nod));
+        },
     });
 
 log("Totals: Passed",test.totalPassed(),"- Failed",test.totalFailed());
@@ -685,18 +881,14 @@ function acnCounter(nod,par,acn,cnt) {
     }
 
 function cptCustom(tag,atr,chn) {
-    let vwu     = vwUpdate(describe);
-
-    function describe() {
-        return vw(tag,atr,chn);
-        }
-
-    return { "$dom": vwu };
+    let EXPORTED = {};
+    vwIsland(() => vw(tag,atr,chn), EXPORTED);
+    return EXPORTED;
     }
 
 function cptDynamic(txt) {
     let EXPORTED = { update }
-    ,   vwu      = vwIsland(describe,EXPORTED);
+    ,   vwu      = vwIsland(describe, EXPORTED);
 
     function describe() {
         return vw("h1.component",txt || "");
@@ -711,7 +903,9 @@ function cptDynamic(txt) {
     }
 
 function cptStatic(txt) {
-    return { "$dom": vwUpdate(vw("h1.component",txt || "")) };
+    let EXPORTED = {};
+    vwIsland(() => vw("h1.component",txt || ""), EXPORTED);
+    return EXPORTED;
     }
 
 function evtClicker() {}

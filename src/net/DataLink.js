@@ -28,17 +28,22 @@
   *
   *     apiUrl          Base URL (possibly a relative reference) for the API namespace.
   *     apiQuery        Base query data.
-  *     poll            Defines the options for an automatic poll message.
-  *     . message       An object or function defining the message to send.
-  *     . frequency     Frequency of polls in milliseconds.
+  *     poll            Optional. When configured, defines an automatic poll message.
+  *     . frequency     Frequency of polls in milliseconds. Defaults to 60,000.
+  *     . message       An object or function defining the message to send. If the function returns null/undef the poll is skipped.
+  *     socketCheck     Optional. When configured, the WebSocket is not used for sending until the server responds to
+  *                     this message. If omitted the WebSocket is used immediately upon opening.
+  *     . defer         Time in milliseconds to defer before sending the check message. Defaults to 0.
+  *     . message       An object or function defining the message to send when the socket opens.
   *     retryLimit      Maximum number of times to attempt a long-lived connection to the server (e.g. when using a
   *                     WebSocket). Defaults to `POSITIVE_INFINITY`.
   *     retryDelay      Number of seconds to delay between connection attempts. Defaults to 3.
   *     --------------  ------------------------------------------------------------------------------------------------
-  *     attempt         This function is invoked when the remote link is attempted. If omitted the event is ignored.
-  *     opened          This function is invoked when the remote link is opened. If omitted the event is ignored.
+  *     attempt         This function is invoked when the link is attempted. If omitted the event is ignored.
+  *     opened          This function is invoked when the link is opened. If omitted the event is ignored.
+  *     ready           This function is invoked when the link is ready for sending. If omitted the event is ignored.
+  *     closed          This function is invoked when the link is closed. If omitted the event is ignored.
   *     receive         This function receives and distributes link messages. If omitted messages are simply discarded.
-  *     closed          This function is invoked when the remote link is closed. If omitted the event is ignored.
   *     error           This function receives and distributes link errors. If omitted errors are ignored.
   *     log             This function receives and logs console messages. Not used by debug messages.
   *
@@ -91,17 +96,19 @@ let exported=this || {};                                                        
 const   SEND_NOW        =true
 ,       FOREVER         =Number.POSITIVE_INFINITY;
 
-let     asyU            =new AsyncUtil()
-  ,     genU            =new GeneralUtil()
+const   asyU            =new AsyncUtil()
+,       genU            =new GeneralUtil()
+,       conlog          =(config?.log || null)                                                                          // application-provided logger
 
 let     ajax            =null
-  ,     closed          =false
-  ,     debug           =false
-  ,     pollTimer       =0
-  ,     skt             =null
-  ,     sktRetries     =-1
-  ,     sktPending      =0
-  ,     sktUrl          =null
+,       closed          =false
+,       dbglog          =null                                                                                           // logging only if debugging
+,       pollTimer       =0
+,       skt             =null
+,       sktReady        =false
+,       sktRetries      =-1
+,       sktTimerId      =0
+,       sktUrl          =null
 
 // *********************************************************************************************************************
 // CONSTRUCTION
@@ -111,7 +118,8 @@ function init() {                                                               
     config=genU.clone(config);
     config.retryDelay=config.retryDelay>0 ? config.retryDelay : 3;
     config.retryLimit=config.retryLimit>0 ? config.retryLimit : FOREVER;
-
+    (config.poll        ??= {}).frequency ??= 60_000;
+    (config.socketCheck ??= {}).defer     ??= 0;
     ajax=new Ajax({
         baseUrl         : config.apiUrl,
         baseQuery       : config.apiQuery,
@@ -119,7 +127,7 @@ function init() {                                                               
 
     if(WebSocket) {
         try {
-            if(config.log) { config.log("WebSocket supported"); }
+            (conlog || dbglog)?.("WebSocket supported");
             sktRetries=config.retryLimit;
             sktUrl=new URL(config.apiUrl,globalThis.location.href);
             sktUrl.protocol=sktUrl.protocol.replace("http","ws");
@@ -127,13 +135,13 @@ function init() {                                                               
             wsOpen();
             }
         catch(thr) {
-            if(config.log) { config.log("WebSocket support error:",sktUrl,thr); }
+            (conlog || dbglog)?.("WebSocket support error:",sktUrl,thr);
             }
         }
     else {
-        if(config.log) { config.log("WebSocket not supported"); }
+        (conlog || dbglog)?.("WebSocket not supported");
         }
-    linkPoll(!SEND_NOW);                                                                                                // queue first poll
+    linkPollQueue();
     }
 
 // *********************************************************************************************************************
@@ -176,24 +184,18 @@ function close(cod,txt) {
   *
   * **Arguments & Return:**
   *
-  *     flg         Set true/false to set debugging of data messages, omit to get current state.
+  *     flg         Set true/false to enable/disable debugging of data messages, omit to get current state.
   *     =>          The debug state if no argument supplied, otherwise a reference to this module.
-  *
-  * ###### Example
-  *
-  *     let link=new DataLink(...).debug(true);
-  *     console.print(link.debug() ? "Debugging is enabled" : "Debugging is disabled");
-  *     link.debug(false);
   */
 exported.debug=gsDebug;
 function gsDebug(on) {
     if(on!=undefined) {
-        debug=on || false;
+        dbglog=(on ? (conlog ? conlog : console.log) : null);
         ajax.debug(on);                                                                                                 // also enable debugs for the ajax transmissions
         return exported;
         }
     else {
-        return debug;
+        return (dbglog!=null);
         }
     }
 
@@ -208,11 +210,11 @@ function gsDebug(on) {
   */
 exported.send=send;
 function send(msg) {
-    linkField(msg,msg             ,"Message object");
-    linkField(msg,msg.head        ,"Message field 'head'");
-    linkField(msg,msg.head.action ,"Message field 'head.action'");
-    linkField(msg,msg.head.subpath,"Message field 'head.subpath'");
-    linkData(msg);
+    fieldRqd(msg,msg             ,"Message object");
+    fieldRqd(msg,msg.head        ,"Message field 'head'");
+    fieldRqd(msg,msg.head.action ,"Message field 'head.action'");
+    fieldRqd(msg,msg.head.subpath,"Message field 'head.subpath'");
+    linkSend(msg);
     return exported;
     }
 
@@ -222,8 +224,8 @@ function send(msg) {
   * This is a convenience wrapper and uses the configured poll message. Itenables adaptive rapid polling beyond the
   * background status polling. The pending background poll, if any, will be cancelled and rescheduled.
   *
-  * If the the poll parameters are not configured then this is a no-op. Specifically, if `config.poll.message` is null
-  * or undefined, no poll is sent and no error is indicated.
+  * If the the poll parameters are not configured then this is a no-op. Specifically, if `config.poll.message` (or it's
+  * return value if it's a function) is null or undefined, no poll is sent and no error is indicated.
   *
   * **Arguments & Return:**
   *
@@ -231,7 +233,7 @@ function send(msg) {
   */
 exported.sendPoll=sendPoll;
 function sendPoll() {
-    linkPoll(SEND_NOW);
+    linkPollSend();
     return exported;
     }
 
@@ -239,55 +241,69 @@ function sendPoll() {
 // PRIVATE FUNCTIONS
 // *********************************************************************************************************************
 
+function fieldRqd(msg,fld,dsc) {
+    if(fld==null) { throw new Escape("Message","Data Link: "+dsc+" is required"+(msg!==fld ? "("+JSON.stringify(msg)+")" : "")); }
+    }
+
 function linkAttempt(rmn) {
-    if(debug) { console.log("[DB]","Data Link attempt for '"+config.apiUrl+"': ",evt); }
+    dbglog?.("Data Link attempt for '"+config.apiUrl+"': ",rmn);
     if(!closed && config.attempt!=null) { config.attempt({ retryLimit: config.retryLimit, retriesRemaining: rmn }); }
     }
 
 function linkOpened(evt) {
-    if(debug) { console.log("[DB]","Data Link opened for '"+config.apiUrl+"': ",evt); }
+    dbglog?.("Data Link opened for '"+config.apiUrl+"': ",evt);
     if(!closed && config.opened!=null) { config.opened(evt); }
     }
 
+function linkReady() {
+    dbglog?.("Data Link ready for '"+config.apiUrl+"'");
+    if(!closed && config.ready!=null) { config.ready(); }
+    }
+
 function linkClosed(evt) {
-    if(debug) { console.log("[DB]","Data Link closed for '"+config.apiUrl+"': ",evt); }
+    dbglog?.("Data Link closed for '"+config.apiUrl+"': ",evt);
     if(!closed && config.closed!=null) { config.closed(evt); }
     }
 
 function linkFailed(msg) {
-    if(debug) { console.log("[DB]","Data Link error for '"+config.apiUrl+"': ",msg); }
+    dbglog?.("Data Link error for '"+config.apiUrl+"': ",msg);
     if(!closed && config.error!=null) { config.error(msg,sktRetries); }
     }
 
-function linkData(msg) {
-    if(debug) { console.log("[DB]","Data Link send for '"+config.apiUrl+"': ",msg); }
-    if(!closed && !wsSend(msg)) {
-        ajax.send(msg.head.action,msg.head.subpath,msg.head.query,msg.body)
-        .then(function(rspdta) {
-            linkRecv({ head: msg.head, body: rspdta });
-            })
-        .catch(function(err) {
-            if(debug) { console.log("[DB]","Data Link AJAX error for '"+config.apiUrl+"': ",err); }
-            linkFailed(err);
-            });
-        }
-    }
-
-function linkPoll(sndnow) {
-    if(!closed && config && config.poll && config.poll.message) {
+function linkPollQueue() {
+    if(!closed && config.poll.message) {
         clearTimeout(pollTimer);
-        if(sndnow) { send(genU.isFunc(config.poll.message) ? config.poll.message() : config.poll.message); }
         if(config.poll.frequency>0) { pollTimer=setTimeout(sendPoll,config.poll.frequency); }
         }
     }
 
-function linkRecv(msg) {
-    if(debug) { console.log("[DB]","Data Link recv for '"+config.apiUrl+"': ",msg); }
-    if(!closed && config.receive!=null) { config.receive(msg); }
+function linkPollSend() {
+    if(!closed && config.poll.message) {
+        let msg = genU.isFunc(config.poll.message) ? config.poll.message() : config.poll.message;
+        if(msg) { send(msg);       }
+        else    { linkPollQueue(); }
+        }
     }
 
-function linkField(msg,fld,dsc) {
-    if(fld==null) { throw new Escape("Message","Data Link: "+dsc+" is required"+(msg!==fld ? "("+JSON.stringify(msg)+")" : "")); }
+function linkRecv(msg) {
+    dbglog?.("Data Link recv for '"+config.apiUrl+"': ",msg);
+    if(!closed && config.receive!=null) { config.receive(msg); }
+    linkPollQueue();
+    }
+
+function linkSend(msg) {
+    dbglog?.("Data Link send for '"+config.apiUrl+"': ",msg);
+    if(!closed && !wsSend(msg)) {
+        ajax.send(msg.head.action,msg.head.subpath,msg.head.query,msg.body)
+        .then((rspdta) => {
+            linkRecv({ head: msg.head, body: rspdta });
+            })
+        .catch((err) => {
+            dbglog?.("Data Link AJAX error for '"+config.apiUrl+"': ",err);
+            linkFailed(err);
+            });
+        }
+    linkPollQueue();
     }
 
 // *********************************************************************************************************************
@@ -295,16 +311,17 @@ function linkField(msg,fld,dsc) {
 // *********************************************************************************************************************
 
 function wsOpen() {
-    if(closed || sktUrl==null || sktPending) {
+    if(closed || sktUrl==null || sktTimerId) {
         return false;
         }
 
     if(skt!=null) try { skt.close(); } catch(err) {/*ignore*/}                                                          // attempt close and ignore error
     skt=null;
+    sktReady=false;
 
     if(sktRetries==0) {
         let err="WebSocket connection attempts exhausted for "+sktUrl;
-        if(debug) { console.log("[DB]",err); }
+        dbglog?.(err);
         sktRetries=-1;                                                                                                  // flags to callback that retries will no longer be attempted
         linkFailed(err);
         return false;
@@ -313,14 +330,14 @@ function wsOpen() {
         return false;
         }
 
-    let dly=(sktRetries>=config.retryLimit ? 0 : config.retryDelay);
+    let dly=(sktRetries>=config.retryLimit ? 0 : config.retryDelay) * 1000;
 
+    linkAttempt(sktRetries);
     --sktRetries;                                                                                                       // INFINITY - 1 = INFINITY
-    sktPending=asyU.defer((dly*1000),function() {
-        sktPending=0;
+    sktTimerId=asyU.defer(dly,() => {
+        sktTimerId=0;
         try {
-            if(debug) { console.log("[DB]","WebSocket connection attempt to "+sktUrl+" (retries remaining: "+(sktRetries+1)+")"); }
-            linkAttempt(sktRetries);
+            dbglog?.("WebSocket connection to "+sktUrl+" (retries remaining: "+(sktRetries+1)+")");
             skt=new WebSocket(sktUrl);
             skt.onopen   =wsOpened;
             skt.onclose  =wsClosed;
@@ -328,11 +345,11 @@ function wsOpen() {
             skt.onmessage=wsReceived;
             }
         catch(err) {
-            if(config.log) { config.log("WebSocket error:",sktUrl,err); }
+            (conlog || dbglog)?.("WebSocket error:",sktUrl,err);
             wsOpen();
             }
         });
-    if(debug) { console.log("[DB]","WebSocket connection queued for action"+(dly>0 ? " in "+dly+" seconds." : ".")); }
+    dbglog?.("WebSocket connection queued (delay="+dly+" ms)");
 
     return true;
     }
@@ -349,7 +366,7 @@ function wsSend(msg) {
         wsOpen();
         return false;                                                                                                   // not ready
         }
-    else if(skt.readyState!=WebSocket.OPEN) {
+    else if(skt.readyState!=WebSocket.OPEN || !sktReady) {
         return false;
         }
     else {
@@ -358,7 +375,7 @@ function wsSend(msg) {
             return true;
             }
         catch(err) {
-            if(config.log) { config.log("WebSocket error:",sktUrl,err); }
+            (conlog || dbglog)?.("WebSocket send error:",sktUrl,err);
             linkFailed(err);
             wsOpen();
             return false;                                                                                               // send failed
@@ -367,7 +384,7 @@ function wsSend(msg) {
     }
 
 function wsOpened(evt) {
-    if(config.log) { config.log("WebSocket opened:",sktUrl); }
+    (conlog || dbglog)?.("WebSocket opened:",sktUrl);
 
     if(closed) {
         wsClose();
@@ -375,23 +392,41 @@ function wsOpened(evt) {
         }
 
     sktRetries=config.retryLimit;
+    if(config.socketCheck && config.socketCheck.message) {
+        let dfr=config.socketCheck.defer;
+        let msg=(genU.isFunc(config.socketCheck.message) ? config.socketCheck.message() : config.socketCheck.message);
+        setTimeout(() => { try { skt.send(JSON.stringify(msg)); } catch(err) {/*ignore — wsFailed will handle*/} },dfr);
+        (conlog || dbglog)?.("WebSocket check queued (defer="+dfr+" ms)");
+        }
+    else {
+        sktReady=true;
+        (conlog || dbglog)?.("WebSocket ready (no socket-check configured)");
+        linkReady();
+        }
     linkOpened(evt);
     }
 
 function wsClosed(evt) {
-    if(config.log) { config.log("WebSocket closed:",sktUrl); }
+    (conlog || dbglog)?.("WebSocket closed:",sktUrl);
     linkClosed(evt);
     wsOpen();
     }
 
 function wsFailed(err) {
-    if(config.log) { config.log("WebSocket failed:",sktUrl); }
+    (conlog || dbglog)?.("WebSocket failed:",sktUrl);
     linkFailed(err);
     wsOpen();
     }
 
 function wsReceived(evt) {
-    linkRecv(JSON.parse(evt.data));
+    if(!sktReady) {
+        sktReady=true;
+        (conlog || dbglog)?.("WebSocket ready (socket-check response received)");
+        linkReady();
+        }
+    else {
+        linkRecv(JSON.parse(evt.data));
+        }
     }
 
 // *********************************************************************************************************************
