@@ -198,7 +198,7 @@ function send(mth, url, qry, bdy, opt) {
   *     =>          A Promise, resolved if the beacon was queue, rejected if it was not.
   *
   * <p><span class="status-stable">Status: </span>
-  * <p><span class="since">7.00</p>
+  * <p><span class="since">1.00</span></p>
   */
 exported.sendBeacon=sendBeacon;
 function sendBeacon(url, qry, bdy) {
