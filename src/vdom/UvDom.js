@@ -38,7 +38,10 @@
 /// name            | String        | The name of the UI being rendered for errors and debugging.
 /// document        | Object        | The document for which DOM nodes will be created. Defaults to global `document`.
 /// log             | function      | A function to use for logging. Defaults to `console.log` with a bound prefix.
+/// debounce        | Number        | Update debounce time in ms; must be > 0, defaults to 8ms.
 /// printNode       | function      | A function to use for printing a node for logging and debugging.
+///
+/// <span class="since">1.00</span>
 
 function UvDom(cfg)
 { "use strict"; const EXPORTED={}; function exported(v,n){EXPORTED[n]=v;}
@@ -48,6 +51,7 @@ const   doc         = cfg?.document  ?? document
 ,       idn         = Math.floor(Math.random() * 900_000_000) + 100_000_000
 ,       log         = cfg?.log       ?? console.log.bind(console,"["+(cfg?.name ?? "UVDOM-" + idn)+"]")
 ,       dom         = cfg?.printNode ?? (obj=>obj)
+,       dbn         = cfg?.debounce  ?? 8
 
 //**********************************************************************************************************************
 
@@ -273,8 +277,8 @@ function update(vew,nod) {
     let csn = idn + "-" + (srl = (srl%MSN) + 1)                                                                         // component serial number
     ,   crq = F                                                                                                         // custom render queued
     ,   rip = F                                                                                                         // render is pending
-    ,   $q = (/* ignore args and return undef; so usable as a PGS callback */) => {                                     // queue update.
-            if(!rip) { rip = T; setTimeout($r) }                                                                        // dont use setTimeout return; may return 0
+    ,   $q = (/* ignore args and return undef; so usable as a PGS callback */) => {                                     // queue update
+            if(rdi && !rip) { rip = T; setTimeout($r,dbn) }                                                             // dormant until rdi assigned
             }
     ,   $r = (/* ignore args and return undef so usable by setTimeout/requestAnimationFrame/queueMicrotask. */) => {    // expedited rendering
             $s(nod?.parentNode);
