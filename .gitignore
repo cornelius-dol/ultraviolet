@@ -1,3 +1,5 @@
 *.*.[{]*[}]
 *.target-folder
+bld/
+doc/
 zbuild/
