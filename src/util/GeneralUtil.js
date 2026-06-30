@@ -503,16 +503,51 @@ function isWrapper(val) {
     }
 
 /**
-  * Get a date in ISO format; primarily exists to make dependency on `moment.js` (which is our preferred date formatting library) optional.
+  * Get a date in local ISO format (`YYYY-MM-DD`). Dates in the BC era are suffixed with ` BC`.
+  *
+  * **Arguments & Return:**
+  *
+  *     dat             A Date object; defaults to now if null/undefined.
+  *     (return)        A string in the format `YYYY-MM-DD` (or `YYYY-MM-DD BC` for negative years).
   */
 exported.isoDate=isoDate;
 function isoDate(dat) {
-    if(!dat) { dat=new Date(); }
-    let yy = dat.getFullYear();
-    let xy = String(Math.abs(dat.getFullYear()));
-    let xm = String(dat.getMonth()+1);                                                                                  // getMonth() is zero-based
-    let xd = String(dat.getDate());
-    return (xy + "-" + (xm[1] ? "" : "0") + xm + "-" + (xd[1] ? "" : "0") + xd + (yy<0 ? " BC" : ""));
+    dat ??= new Date();
+    let yr = dat.getFullYear()
+    ,   mm = String(dat.getMonth()+1).padStart(2,"0")
+    ,   dd = String(dat.getDate()   ).padStart(2,"0");
+    return (Math.abs(yr) + "-" + mm + "-" + dd + (yr<0 ? " BC" : ""));
+    }
+
+/**
+  * Get a time in local ISO format (`HH:MM:SS`), using 24-hour clock.
+  *
+  * **Arguments & Return:**
+  *
+  *     dat             A Date object; defaults to now if null/undefined.
+  *     (return)        A string in the format `HH:MM:SS`.
+  */
+exported.isoTime=isoTime;
+function isoTime(dat) {
+    dat ??= new Date();
+    let hh = String(dat.getHours()  ).padStart(2,"0")
+    ,   mi = String(dat.getMinutes()).padStart(2,"0")
+    ,   ss = String(dat.getSeconds()).padStart(2,"0");
+    return (hh + ":" + mi + ":" + ss);
+    }
+
+/**
+  * Get a date and time in local ISO format (`YYYY-MM-DD HH:MM:SS`), using a space separator instead of `T`.
+  *
+  * **Arguments & Return:**
+  *
+  *     dat             A Date object; defaults to now if null/undefined.
+  *     (return)        A string in the format `YYYY-MM-DD HH:MM:SS`.
+  */
+exported.isoDateTime=isoDateTime;
+function isoDateTime(dat) {
+    dat ??= new Date();
+    return (isoDate(dat) + " " + isoTime(dat));
     }
 
 /**

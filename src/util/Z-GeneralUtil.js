@@ -8,6 +8,8 @@ import { Litmus }           from "/$bdd/Litmus.js";
 const env           = new BddEnv()
 ,     test          = new Litmus({ diag: false, failFast: true, outputPass: false })
 ,     LOGPFX        = "        "
+,     YES           = true
+,     NO            = false
 
 const genU          = env.createModule("/$cwd/GeneralUtil.js",{ asyncUtil: env.createModule("/$prj/src/async/AsyncUtil.js", { logPrefix: LOGPFX }), logPrefix: LOGPFX });
 
@@ -265,28 +267,28 @@ test.batch("deepFreeze recusively freezes a container and its subcontainers (sim
         let obj={ a: 1, b: { b1: 2, b2: [1,2,3] }, c: [4,5,7,{ d:8 }] };
         let obj2=genU.deepFreeze(obj);
         test.valEQ(obj ,obj2                        ,"Ensure object is identical");
-        test.valEQ(true,Object.isFrozen(obj)        ,"Ensure object is frozen");
-        test.valEQ(true,Object.isFrozen(obj.b)      ,"Ensure sub-object is frozen");
-        test.valEQ(true,Object.isFrozen(obj.b.b2)   ,"Ensure sub-object sub-array is frozen");
-        test.valEQ(true,Object.isFrozen(obj.c)      ,"Ensure sub-array is frozen");
-        test.valEQ(true,Object.isFrozen(obj.c[3])   ,"Ensure sub-array sub-object is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj)        ,"Ensure object is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.b)      ,"Ensure sub-object is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.b.b2)   ,"Ensure sub-object sub-array is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.c)      ,"Ensure sub-array is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.c[3])   ,"Ensure sub-array sub-object is frozen");
         },
     "Freezing an object will not freeze members which are classes or functions": () => {
         let obj={ a: 1, b: 2, c: new Error(), d: () => true };
         let obj2=genU.deepFreeze(obj);
-        test.valEQ(true ,Object.isFrozen(obj)       ,"Ensure container is frozen");
-        test.valEQ(false,Object.isFrozen(obj.c)     ,"Ensure member class-instance is not frozen");
-        test.valEQ(false,Object.isFrozen(obj.d)     ,"Ensure member function is not frozen");
+        test.valEQ(YES ,Object.isFrozen(obj)       ,"Ensure container is frozen");
+        test.valEQ(NO  ,Object.isFrozen(obj.c)     ,"Ensure member class-instance is not frozen");
+        test.valEQ(NO  ,Object.isFrozen(obj.d)     ,"Ensure member function is not frozen");
         },
     "Freezing an object with a skip function will not freeze skipped members": () => {
         let obj={ a: 1, b: { b1: 2, b2: [1,2,3] }, c: [4,5,7,{ d:8 }] };
         let obj2=genU.deepFreeze(obj,(pth,key,val) => { return key==="b"; });
         test.valEQ(obj  ,obj2                       ,"Ensure root object is identical");
-        test.valEQ(true ,Object.isFrozen(obj)       ,"Ensure root object is frozen");
-        test.valEQ(false,Object.isFrozen(obj.b)     ,"Ensure sub-object `b` is NOT frozen");
-        test.valEQ(false,Object.isFrozen(obj.b.b2)  ,"Ensure sub-object sub-array `b.b2` is frozen");
-        test.valEQ(true ,Object.isFrozen(obj.c)     ,"Ensure sub-array `c` is frozen");
-        test.valEQ(true ,Object.isFrozen(obj.c[3])  ,"Ensure sub-array sub-object `c[3]` is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj)       ,"Ensure root object is frozen");
+        test.valEQ(NO  ,Object.isFrozen(obj.b)     ,"Ensure sub-object `b` is NOT frozen");
+        test.valEQ(NO  ,Object.isFrozen(obj.b.b2)  ,"Ensure sub-object sub-array `b.b2` is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.c)     ,"Ensure sub-array `c` is frozen");
+        test.valEQ(YES ,Object.isFrozen(obj.c[3])  ,"Ensure sub-array sub-object `c[3]` is frozen");
         },
     });
 
@@ -328,7 +330,7 @@ test.batch("defaultValue defaults a value when it is undefined.",{
         test.valEQ(null,genU.defaultValue(null,"default"));
         },
     "Given a false value, the returned value is `false`.": () => {
-        test.valEQ(false,genU.defaultValue(false,"default"));
+        test.valEQ(NO,genU.defaultValue(NO,"default"));
         },
     "Given a \"\" value, the returned value is `\"\"`.": () => {
         test.valEQ("",genU.defaultValue("","default"));
@@ -408,56 +410,82 @@ test.batch("generateId creates a random string of arbitrary length and compositi
 
 test.batch("Various isXxx() functions allow testing of types and values", {
     "Answer the question, what type is it?": {
-        "function"                                          : () => { test.valEQ(true ,genU.isFunc(()=>{})              ); },
-        "array"                                             : () => { test.valEQ(true ,genU.isArray([])                 ); },
-        "boolean"                                           : () => { test.valEQ(true ,genU.isBoolean(0==1)             ); },
-        "container (struct)"                                : () => { test.valEQ(true ,genU.isContainer({})             ); },
-        "container (array)"                                 : () => { test.valEQ(true ,genU.isContainer([])             ); },
-        "number"                                            : () => { test.valEQ(true ,genU.isNumber(1)                 ); },
-        "object"                                            : () => { test.valEQ(true ,genU.isObject(new Error())       ); },
-        "string"                                            : () => { test.valEQ(true ,genU.isString("")                ); },
-        "struct"                                            : () => { test.valEQ(true ,genU.isStruct({})                ); },
-        "Boolean is a wrapper"                              : () => { test.valEQ(true ,genU.isWrapper(new Boolean(true))); },
-        "Number is a wrapper"                               : () => { test.valEQ(true ,genU.isWrapper(new Number(1))    ); },
-        "String is a wrapper"                               : () => { test.valEQ(true ,genU.isWrapper(new String(""))   ); },
-        "Isn't function"                                    : () => { test.valEQ(false,genU.isFunc("")                  ); },
-        "Isn't array"                                       : () => { test.valEQ(false,genU.isArray({})                 ); },
-        "Isn't boolean"                                     : () => { test.valEQ(false,genU.isBoolean(0)                ); },
-        "Isn't container"                                   : () => { test.valEQ(false,genU.isContainer("")             ); },
-        "Isn't number"                                      : () => { test.valEQ(false,genU.isNumber("1")               ); },
-        "Isn't object"                                      : () => { test.valEQ(false,genU.isObject(null)              ); },
-        "Isn't string"                                      : () => { test.valEQ(false,genU.isString(1)                 ); },
-        "Isn't struct"                                      : () => { test.valEQ(false,genU.isStruct(new Error())       ); },
-        "Isn't wrapper"                                     : () => { test.valEQ(false,genU.isWrapper(false)            ); },
+        "function"                                          : () => { test.valEQ(YES,genU.isFunc(()=>{})              ); },
+        "array"                                             : () => { test.valEQ(YES,genU.isArray([])                 ); },
+        "boolean"                                           : () => { test.valEQ(YES,genU.isBoolean(0==1)             ); },
+        "container (struct)"                                : () => { test.valEQ(YES,genU.isContainer({})             ); },
+        "container (array)"                                 : () => { test.valEQ(YES,genU.isContainer([])             ); },
+        "number"                                            : () => { test.valEQ(YES,genU.isNumber(1)                 ); },
+        "object"                                            : () => { test.valEQ(YES,genU.isObject(new Error())       ); },
+        "string"                                            : () => { test.valEQ(YES,genU.isString("")                ); },
+        "struct"                                            : () => { test.valEQ(YES,genU.isStruct({})                ); },
+        "Boolean is a wrapper"                              : () => { test.valEQ(YES,genU.isWrapper(new Boolean(YES)) ); },
+        "Number is a wrapper"                               : () => { test.valEQ(YES,genU.isWrapper(new Number(1))    ); },
+        "String is a wrapper"                               : () => { test.valEQ(YES,genU.isWrapper(new String(""))   ); },
+        "Isn't function"                                    : () => { test.valEQ(NO ,genU.isFunc("")                  ); },
+        "Isn't array"                                       : () => { test.valEQ(NO ,genU.isArray({})                 ); },
+        "Isn't boolean"                                     : () => { test.valEQ(NO ,genU.isBoolean(0)                ); },
+        "Isn't container"                                   : () => { test.valEQ(NO ,genU.isContainer("")             ); },
+        "Isn't number"                                      : () => { test.valEQ(NO ,genU.isNumber("1")               ); },
+        "Isn't object"                                      : () => { test.valEQ(NO ,genU.isObject(null)              ); },
+        "Isn't string"                                      : () => { test.valEQ(NO ,genU.isString(1)                 ); },
+        "Isn't struct"                                      : () => { test.valEQ(NO ,genU.isStruct(new Error())       ); },
+        "Isn't wrapper"                                     : () => { test.valEQ(NO ,genU.isWrapper(NO)               ); },
         },
     "Answer the question, what value is it?": {
-        "It is a blank string"                              : () => { test.valEQ(true ,genU.isBlank("")                 ); },
-        "String with whitespace is also blank"              : () => { test.valEQ(true ,genU.isBlank(" ")                ); },
-        "Null is blank"                                     : () => { test.valEQ(true ,genU.isBlank(null)               ); },
-        "Undefined is blank"                                : () => { test.valEQ(true ,genU.isBlank(undefined)          ); },
-        "String with characters isn't blank"                : () => { test.valEQ(false,genU.isBlank("A")                ); },
-        "It is an empty array"                              : () => { test.valEQ(true ,genU.isEmpty([])                 ); },
-        "It is an empty struct"                             : () => { test.valEQ(true ,genU.isEmpty({})                 ); },
-        "It is an empty string"                             : () => { test.valEQ(true ,genU.isEmpty("")                 ); },
-        "It isn't an empty array"                           : () => { test.valEQ(false,genU.isEmpty([1])                ); },
-        "It isn't an empty struct"                          : () => { test.valEQ(false,genU.isEmpty({a:1})              ); },
-        "It isn't an empty string"                          : () => { test.valEQ(false,genU.isEmpty("a")                ); },
-        "String with only whitespace is not empty"          : () => { test.valEQ(false,genU.isEmpty(" ")                ); },
+        "It is a blank string"                              : () => { test.valEQ(YES,genU.isBlank("")                 ); },
+        "String with whitespace is also blank"              : () => { test.valEQ(YES,genU.isBlank(" ")                ); },
+        "Null is blank"                                     : () => { test.valEQ(YES,genU.isBlank(null)               ); },
+        "Undefined is blank"                                : () => { test.valEQ(YES,genU.isBlank(undefined)          ); },
+        "String with characters isn't blank"                : () => { test.valEQ(NO ,genU.isBlank("A")                ); },
+        "It is an empty array"                              : () => { test.valEQ(YES,genU.isEmpty([])                 ); },
+        "It is an empty struct"                             : () => { test.valEQ(YES,genU.isEmpty({})                 ); },
+        "It is an empty string"                             : () => { test.valEQ(YES,genU.isEmpty("")                 ); },
+        "It isn't an empty array"                           : () => { test.valEQ(NO ,genU.isEmpty([1])                ); },
+        "It isn't an empty struct"                          : () => { test.valEQ(NO ,genU.isEmpty({a:1})              ); },
+        "It isn't an empty string"                          : () => { test.valEQ(NO ,genU.isEmpty("a")                ); },
+        "String with only whitespace is not empty"          : () => { test.valEQ(NO ,genU.isEmpty(" ")                ); },
         },
     });
 
-test.batch("isoDate() gives us a local date in ISO format",{
-    "Given a Date for 0, we get the ISO format date for the JavaScript epoch.": () => {
-        test.valEQ("1969-12-31",genU.isoDate(new Date(0)),"");
+test.batch("Various isoXxx() functions yield ISO formatted dates and times", {
+    "isoDate() gives us a local date in ISO format": {
+        "Given a Date for 0, we get the ISO format date for the JavaScript epoch.": () => {
+            test.valEQ("1969-12-31",genU.isoDate(new Date(0)),"");
+            },
+        "Given a Date for 1588540932452, we get the ISO format date for May 3, 2020.": () => {
+            test.valEQ("2020-05-03",genU.isoDate(new Date(1588540932452)),"");
+            },
+        "Given a Date for 100,000,000 days, we get the maximum ISO format date (Sep 13, 275760).": () => {
+            test.valEQ("275760-09-12",genU.isoDate(new Date( 100000000*24*60*60*1000)),"");
+            },
+        "Given a Date for -100,000,000 days, we get the minimum ISO format date (Apr 20, 271821 BC).": () => {
+            test.valEQ("271821-04-19 BC",genU.isoDate(new Date(-100000000*24*60*60*1000)),"");
+            },
         },
-    "Given a Date for 1588540932452, we get the ISO format date for May 3, 2020.": () => {
-        test.valEQ("2020-05-03",genU.isoDate(new Date(1588540932452)),"");
+    "isoTime() gives us a local time in ISO format": {
+        "Given a Date with time 09:05:03, we get zero-padded HH:MM:SS.": () => {
+            let dat = new Date(2020,0,1,9,5,3);
+            test.valEQ("09:05:03",genU.isoTime(dat),"");
+            },
+        "Given a Date with time 23:59:59, we get 24-hour format.": () => {
+            let dat = new Date(2020,0,1,23,59,59);
+            test.valEQ("23:59:59",genU.isoTime(dat),"");
+            },
+        "Given a Date with time 00:00:00, we get midnight as zeros.": () => {
+            let dat = new Date(2020,0,1,0,0,0);
+            test.valEQ("00:00:00",genU.isoTime(dat),"");
+            },
         },
-    "Given a Date for 100,000,000 days, we get the maximum ISO format date (Sep 13, 275760).": () => {
-        test.valEQ("275760-09-12",genU.isoDate(new Date( 100000000*24*60*60*1000)),"");
-        },
-    "Given a Date for -100,000,000 days, we get the minimum ISO format date (Apr 20, 271821 BC).": () => {
-        test.valEQ("271821-04-19 BC",genU.isoDate(new Date(-100000000*24*60*60*1000)),"");
+    "isoDateTime() gives us a local date and time in ISO format with space separator": {
+        "Given a specific date and time, we get YYYY-MM-DD HH:MM:SS.": () => {
+            let dat = new Date(2020,4,3,14,30,45);
+            test.valEQ("2020-05-03 14:30:45",genU.isoDateTime(dat),"");
+            },
+        "Given midnight on Jan 1, we get zeros for the time portion.": () => {
+            let dat = new Date(2020,0,1,0,0,0);
+            test.valEQ("2020-01-01 00:00:00",genU.isoDateTime(dat),"");
+            },
         },
     });
 
@@ -593,11 +621,11 @@ test.batch("Visitor", {
             let tot;
 
             tot = 0;
-            test.valEQ(true,genU.visit(arr,add),"Adder");
+            test.valEQ(YES,genU.visit(arr,add),"Adder");
             test.valEQ(10,tot,"Adder");
 
             tot = 1;
-            test.valEQ(true,genU.visit(arr,mlt),"Multiplier");
+            test.valEQ(YES,genU.visit(arr,mlt),"Multiplier");
             test.valEQ(24,tot,"Multiplier");
             },
         "Returning false stops processing immediately": () => {
@@ -606,7 +634,7 @@ test.batch("Visitor", {
             let tot;
 
             tot = 0;
-            test.valEQ(false,genU.visit(arr,stp),"Stopped");
+            test.valEQ(NO,genU.visit(arr,stp),"Stopped");
             test.valEQ(0,tot,"Stopped!");
             },
         },
